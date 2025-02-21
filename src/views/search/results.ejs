@@ -1,0 +1,53 @@
+<h1>Search Results</h1>
+<p>Showing results for: "<%= query %>"</p>
+
+<div class="row mb-4">
+    <div class="col-md-3">
+        <!-- Filters -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Filters</h5>
+                <form action="/search" method="GET">
+                    <input type="hidden" name="query" value="<%= query %>">
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Price Range</label>
+                        <div class="d-flex gap-2">
+                            <input type="number" class="form-control" name="minPrice" placeholder="Min" value="<%= minPrice %>">
+                            <input type="number" class="form-control" name="maxPrice" placeholder="Max" value="<%= maxPrice %>">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <select name="category" class="form-select">
+                            <option value="">All Categories</option>
+                            <% categories.forEach(category => { %>
+                                <option value="<%= category.category_id %>" 
+                                    <%= selectedCategory === category.category_id ? 'selected' : '' %>>
+                                    <%= category.name %>
+                                </option>
+                            <% }); %>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-9">
+        <% if (products.length > 0) { %>
+            <div class="row">
+                <% products.forEach(product => { %>
+                    <%- include('../products/_product_card', { product }) %>
+                <% }); %>
+            </div>
+        <% } else { %>
+            <div class="alert alert-info">
+                No products found matching your search criteria.
+            </div>
+        <% } %>
+    </div>
+</div>

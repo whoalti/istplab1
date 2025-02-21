@@ -2,7 +2,7 @@ import { Column, CreateDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn } f
 import { Buyer } from "./Buyer";
 import { Product } from "./Product";
 
-@Entity('purchase_')
+@Entity('purchase')
 export class Purchase {
     @PrimaryGeneratedColumn('uuid')
     purchase_id: string;

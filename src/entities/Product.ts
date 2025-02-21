@@ -26,7 +26,7 @@ export class Product {
     })
     price: number;
 
-    @Column('text', {nullable: false})
+    @Column('text', {nullable: true})
     image_path: string;
 
     @Column('text', {nullable: true})

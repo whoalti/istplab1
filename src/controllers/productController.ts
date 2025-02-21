@@ -2,10 +2,15 @@ import { Request, Response } from "express";
 import { AppDataSource } from "../config/database";
 import { Product } from "../entities/Product";
 import { PriceHistory } from "../entities/PriceHistory";
+import { Between, Like } from "typeorm";
+import { Statistics } from "../entities/Statistics";
+import { ProductCategory } from "../entities/ProductCategory";
 
 export class ProductController { 
     private productRepository = AppDataSource.getRepository(Product);
     private priceHistoryRepository = AppDataSource.getRepository(PriceHistory);
+    private categoryRepository = AppDataSource.getRepository(ProductCategory);
+    private statisticsRepository = AppDataSource.getRepository(Statistics);
 
 
     getAllProducts = async (req: Request, res: Response) => {
@@ -45,12 +50,14 @@ export class ProductController {
             if (!price) {
                 return res.status(400).json({ message: "Price is required" });
             }
+            const image_path = req?.file?.path;
 
             const product = this.productRepository.create({
                 name,
                 stock_quantity,
                 description,
-                price
+                price,
+                image_path
             });
 
             const savedProduct = await queryRunner.manager.save(product);
@@ -112,6 +119,128 @@ export class ProductController {
         }
     };
 
+
+    searchProducts = async (req: Request, res: Response): Promise<any> => {
+        try {
+            const { query, category, minPrice, maxPrice } = req.query;
+            
+            const whereClause: any = {};
+            
+            if (query) {
+                whereClause.name = Like(`%${query}%`);
+            }
+            
+            if (minPrice || maxPrice) {
+                whereClause.price = Between(
+                    parseFloat(minPrice as string) || 0,
+                    parseFloat(maxPrice as string) || 999999
+                );
+            }
+
+            const products = await this.productRepository.find({
+                where: whereClause,
+                relations: ['categories'],
+                ...(category && {
+                    join: {
+                        alias: "product",
+                        innerJoin: {
+                            categories: "product.categories"
+                        }
+                    },
+                    where: (qb: any) => {
+                        qb.where(whereClause)
+                          .andWhere("categories.category_id = :categoryId", { categoryId: category });
+                    }
+                })
+            });
+
+            res.json(products);
+        } catch (error) {
+            res.status(500).json({ message: "Error searching products", error });
+        }
+    };
+
+    addProductToCategory = async (req: Request, res: Response): Promise<any> => {
+        try {
+            const { productId, categoryId } = req.params;
+            
+            const product = await this.productRepository.findOne({
+                where: { product_id: productId },
+                relations: ['categories']
+            });
+            
+            const category = await this.categoryRepository.findOne({
+                where: { category_id: categoryId }
+            });
+
+            if (!product || !category) {
+                return res.status(404).json({ message: "Product or category not found" });
+            }
+
+            product.categories = [...product.categories, category];
+            await this.productRepository.save(product);
+
+            res.json(product);
+        } catch (error) {
+            res.status(500).json({ message: "Error adding product to category", error });
+        }
+    };
+
+    updateProductImage = async (req: Request, res: Response): Promise<any> => {
+        try {
+            if (!req.file) {
+                return res.status(400).json({ message: "No image file provided" });
+            }
+
+            const product = await this.productRepository.findOne({
+                where: { product_id: req.params.id }
+            });
+
+            if (!product) {
+                return res.status(404).json({ message: "Product not found" });
+            }
+
+            product.image_path = req.file.path;
+            const updatedProduct = await this.productRepository.save(product);
+
+            res.json(updatedProduct);
+        } catch (error) {
+            res.status(500).json({ message: "Error updating product image", error });
+        }
+    };
+
+    getProductStatistics = async (req: Request, res: Response): Promise<any> => {
+        try {
+            const stats = await this.statisticsRepository.findOne({
+                where: { product: { product_id: req.params.id } },
+                relations: ['product']
+            });
+
+            if (!stats) {
+                return res.status(404).json({ message: "Statistics not found for this product" });
+            }
+
+            res.json(stats);
+        } catch (error) {
+            res.status(500).json({ message: "Error fetching product statistics", error });
+        }
+    };
+
+    getFeaturedProducts = async (req: Request, res: Response): Promise<any> => {
+        try {
+            const featuredProducts = await this.productRepository
+                .createQueryBuilder("product")
+                .leftJoinAndSelect("product.statistics", "stats")
+                .orderBy("stats.total_sales", "DESC")
+                .take(5)
+                .getMany();
+
+            res.json(featuredProducts);
+        } catch (error) {
+            res.status(500).json({ message: "Error fetching featured products", error });
+        }
+    };
+
     getProductPriceHistory = async (req: Request, res: Response) : Promise<any> => {
         try {
             const product = await this.productRepository.findOne({
@@ -151,5 +280,11 @@ export class ProductController {
             res.status(500).json({ message: "Error deleting product", error });
         }
     };
-    
+    getProductsData = async () => {
+        try {
+            return await this.productRepository.find({relations: ['categories']});
+        } catch (error) {
+            throw error;
+        }
+    }
 }

@@ -1,0 +1,26 @@
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">Welcome to MyShop</h1>
+        <p class="lead">Discover our amazing products</p>
+    </div>
+</div>
+
+<% if (featured && featured.length > 0) { %>
+<section class="mb-5">
+    <h2 class="mb-4">Featured Products</h2>
+    <div class="row">
+        <% featured.forEach(product => { %>
+            <%- include('_product_card', { product }) %>
+        <% }); %>
+    </div>
+</section>
+<% } %>
+
+<section>
+    <h2 class="mb-4">All Products</h2>
+    <div class="row">
+        <% products.forEach(product => { %>
+            <%- include('_product_card', { product }) %>
+        <% }); %>
+    </div>
+</section>
