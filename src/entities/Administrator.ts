@@ -12,3 +12,4 @@ export class Administrator {
     @Column({length: 255})
     password_hash: string;
 }
+

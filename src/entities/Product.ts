@@ -3,6 +3,7 @@ import { Statistics } from "./Statistics";
 import { Purchase } from "./Purchase";
 import { ProductCategory } from "./ProductCategory";
 import { PriceHistory } from "./PriceHistory";
+import { Min } from "class-validator";
 
 @Entity("product")
 export class Product {
@@ -13,9 +14,12 @@ export class Product {
     @Column({length: 255})
     name: string;
 
+
+ @Min(0, { message: "Stock quantity cannot be negative" })
     @Column()
     stock_quantity: number
     
+    @Min(0, { message: "Price cannot be negative" })
     @Column("decimal", { 
         precision: 10, 
         scale: 2,

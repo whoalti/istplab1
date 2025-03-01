@@ -24,6 +24,8 @@ app.set('layout', 'layouts/main');
 
 // app.use(express.static(path.join(__dirname, 'public'))); 
 app.use(express.static(path.join(__dirname)));
+// app.use(express.static(path.join(__dirname, 'public'))); 
+
 
 app.get('/health', (req, res) => {
     res.json({status: 'ok'});
