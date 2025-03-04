@@ -2,35 +2,32 @@ import { NextFunction, Response, Request } from "express";
 import { AppDataSource } from "../config/database";
 import { ProductCategory } from "../entities/ProductCategory";
 import { CustomError } from "../utils/errors";
-
-
+import { Product } from "../entities/Product";
 
 export class CategoryController {
     private categoryRepository = AppDataSource.getRepository(ProductCategory);
 
     getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const categories = await this.categoryRepository.find({
-                relations: ['products']
-            });
+            // Use a simple find without relations for API
+            const categories = await this.categoryRepository.find();
             res.json(categories);
         } catch (error) {
-            next(new CustomError('Failed to fetch categories', 500))
+            next(new CustomError('Failed to fetch categories', 500));
         }
     }
 
     getCategoryById = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const category = await this.categoryRepository.findOne({
-                where: {category_id: req.params.id},
-                relations: ['products']
+                where: {category_id: req.params.id}
             });
             if (!category) {
-                next(new CustomError('Category not found', 404))
+                return next(new CustomError('Category not found', 404));
             }
             res.json(category);
         } catch (error) {
-            next(new CustomError('Failed to fetch category', 500))
+            next(new CustomError('Failed to fetch category', 500));
         }
     }
 
@@ -114,6 +111,48 @@ export class CategoryController {
             res.json(category.products);
         } catch (error) {
             next(error);
+        }
+    }
+
+    // New methods for views
+    getAllCategoriesForView = async (req: Request, res: Response): Promise<ProductCategory[]> => {
+        try {
+            // Simple find without relations for view
+            const categories = await this.categoryRepository.find();
+            console.log('Found categories:', categories.length);
+            return categories;
+        } catch (error) {
+            console.error('Error fetching categories for view:', error);
+            return [];
+        }
+    }
+
+    getCategoryForView = async (req: Request, res: Response): Promise<ProductCategory | null> => {
+        try {
+            // First find the category
+            const category = await this.categoryRepository.findOne({
+                where: { category_id: req.params.id }
+            });
+            
+            if (!category) {
+                return null;
+            }
+            
+            // Then get the products in a separate query
+            const productsQuery = AppDataSource.getRepository(Product)
+                .createQueryBuilder('product')
+                .innerJoin('product.categories', 'category')
+                .where('category.category_id = :categoryId', { categoryId: req.params.id });
+                
+            const products = await productsQuery.getMany();
+            
+            // Manually add the products to the category
+            category.products = products;
+            
+            return category;
+        } catch (error) {
+            console.error('Error fetching category for view:', error);
+            return null;
         }
     }
 }

@@ -1,0 +1,86 @@
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4"><%= product ? 'Edit Product' : 'Add New Product' %></h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form action="<%= product ? `/products/${product.product_id}` : '/api/products' %>" 
+                      method="POST" 
+                      enctype="multipart/form-data">
+                    
+                    <% if (product) { %>
+                        <input type="hidden" name="_method" value="PUT">
+                    <% } %>
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Product Name</label>
+                        <input type="text" class="form-control" id="name" name="name" 
+                               value="<%= product ? product.name : '' %>" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" 
+                                  rows="3"><%= product ? product.description : '' %></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="price" class="form-label">Price</label>
+                            <div class="input-group">
+                                <span class="input-group-text">$</span>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       step="0.01" min="0.01" 
+                                       value="<%= product ? product.price : '' %>" required>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="stock_quantity" class="form-label">Stock Quantity</label>
+                            <input type="number" class="form-control" id="stock_quantity" name="stock_quantity" 
+                                   min="0" value="<%= product ? product.stock_quantity : '0' %>" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="categories" class="form-label">Categories</label>
+                        <select class="form-select" name="category" id="categories">
+                            <option value="">Select a category</option>
+                            <% categories.forEach(category => { %>
+                                <option value="<%= category.category_id %>" 
+                                    <%= product && product.categories && 
+                                       product.categories.some(cat => cat.category_id === category.category_id) ? 'selected' : '' %>>
+                                    <%= category.name %>
+                                </option>
+                            <% }); %>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="image" class="form-label">Product Image</label>
+                        <% if (product && product.image_path) { %>
+                            <div class="mb-2">
+                                <img src="<%= product.image_path %>" 
+                                     alt="<%= product.name %>" 
+                                     class="img-thumbnail" 
+                                     style="max-height: 200px;">
+                            </div>
+                        <% } %>
+                        <input type="file" class="form-control" id="image" name="image" accept="image/*">
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="/products" class="btn btn-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <%= product ? 'Update Product' : 'Add Product' %>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

@@ -10,7 +10,7 @@
         <div class="card-body">
             <h5 class="card-title text-truncate"><%= product.name %></h5>
             <p class="card-text" style="height: 4.5rem; overflow: hidden;"><%= product.description %></p>
-            <p class="card-text fw-bold fs-5">$<%= product.price.toFixed(2) %></p>
+            <p class="card-text fw-bold fs-5">$<%= typeof product.price === 'number' ? product.price.toFixed(2) : parseFloat(product.price).toFixed(2) %></p>
             <% if (product.stock_quantity > 0) { %>
                 <p class="text-success mb-0">In Stock (<%= product.stock_quantity %> available)</p>
             <% } else { %>
@@ -23,7 +23,11 @@
                 <% if (product.stock_quantity > 0) { %>
                     <button class="btn btn-primary">Add to Cart</button>
                 <% } %>
+                <a href="/products/<%= product.product_id %>/edit" class="btn btn-secondary mb-3">
+                    Edit Product
+                </a>
             </div>
         </div>
+        
     </div>
 </div>

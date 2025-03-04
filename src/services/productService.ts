@@ -11,5 +11,5 @@ export class ProductService {
         private readonly categoryRepository: Repository<Product>,
     ) {}
 
-    // async createProduct (createProductDto: CreateProductDto) : Promis<Product 
+
 }

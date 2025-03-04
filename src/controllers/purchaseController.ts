@@ -56,7 +56,6 @@ export class PurchaseController {
             statistics.total_sales += 1;
             statistics.total_revenue += amount;
 
-            // Save all changes
             await queryRunner.manager.save(product);
             await queryRunner.manager.save(purchase);
             await queryRunner.manager.save(statistics);

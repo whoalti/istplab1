@@ -123,7 +123,6 @@ export class CategoryDto {
     description?: string;
 }
 
-// DTO for price history
 export class PriceHistoryDto {
     @IsUUID("4")
     price_history_id: string;

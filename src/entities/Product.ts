@@ -37,7 +37,7 @@ export class Product {
     description: string
 
     @CreateDateColumn()
-    created_at: Date;       // Exact match with database column name
+    created_at: Date;        
 
     @UpdateDateColumn()
     updated_at: Date;

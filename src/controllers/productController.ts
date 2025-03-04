@@ -287,4 +287,111 @@ export class ProductController {
             throw error;
         }
     }
+
+    getAllProductsForView = async (): Promise<Product[]> => {
+        try {
+            return await this.productRepository.find({
+                relations: ['categories']
+            });
+        } catch (error) {
+            console.error('Error fetching products for view:', error);
+            return [];
+        }
+    }
+    
+    getProductByIdForView = async (id: string): Promise<Product | null> => {
+        try {
+            return await this.productRepository.findOne({
+                where: { product_id: id },
+                relations: ['categories']
+            });
+        } catch (error) {
+            console.error('Error fetching product for view:', error);
+            return null;
+        }
+    }
+    
+    getFeaturedProductsForView = async (): Promise<Product[]> => {
+        try {
+            return await this.productRepository
+                .createQueryBuilder("product")
+                .leftJoinAndSelect("product.categories", "categories")
+                .leftJoinAndSelect("product.statistics", "stats")
+                .orderBy("stats.total_sales", "DESC")
+                .take(5)
+                .getMany();
+        } catch (error) {
+            console.error('Error fetching featured products for view:', error);
+            return [];
+        }
+    }
+    
+    getProductPriceHistoryForView = async (id: string): Promise<PriceHistory[]> => {
+        try {
+            const product = await this.productRepository.findOne({
+                where: { product_id: id },
+                relations: ['priceHistory']
+            });
+    
+            if (!product) {
+                return [];
+            }
+    
+            const priceHistory = product.priceHistory.map(item => {
+                if (typeof item.price === 'string') {
+                    item.price = parseFloat(item.price);
+                }
+                return item;
+            });
+    
+            return priceHistory.sort((a, b) => 
+                b.updated_at.getTime() - a.updated_at.getTime()
+            );
+        } catch (error) {
+            console.error('Error fetching price history for view:', error);
+            return [];
+        }
+    }
+    
+    searchProductsForView = async (
+        query?: string, 
+        categoryId?: string, 
+        minPrice?: string, 
+        maxPrice?: string
+    ): Promise<Product[]> => {
+        try {
+            const whereClause: any = {};
+            
+            if (query) {
+                whereClause.name = Like(`%${query}%`);
+            }
+            
+            if (minPrice || maxPrice) {
+                whereClause.price = Between(
+                    parseFloat(minPrice || '0'),
+                    parseFloat(maxPrice || '999999')
+                );
+            }
+    
+            return await this.productRepository.find({
+                where: whereClause,
+                relations: ['categories'],
+                ...(categoryId && {
+                    join: {
+                        alias: "product",
+                        innerJoin: {
+                            categories: "product.categories"
+                        }
+                    },
+                    where: (qb: any) => {
+                        qb.where(whereClause)
+                          .andWhere("categories.category_id = :categoryId", { categoryId });
+                    }
+                })
+            });
+        } catch (error) {
+            console.error('Error searching products for view:', error);
+            return [];
+        }
+    }
 }

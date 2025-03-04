@@ -1,68 +1,23 @@
-<div class="row mb-4">
-    <div class="col">
-        <h1 class="display-4">Welcome to MyShop</h1>
-        <p class="lead">Discover our amazing products</p>
-    </div>
-</div>
-
-<% if (featured && featured.length > 0) { %>
-<section class="mb-5">
-    <h2 class="mb-4">Featured Products</h2>
-    <div class="row">
-        <% featured.forEach(product => { %>
-            <%- include('_product_card', { product }) %>
-        <% }); %>
-    </div>
-</section>
-<% } %>
-
-<section>
-    <h2 class="mb-4">All Products</h2>
-    <div class="row">
-        <% products.forEach(product => { %>
-            <%- include('_product_card', { product }) %>
-        <% }); %>
-    </div>
-</section>
-
-<!-- views/products/show.ejs -->
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <% if (product.image_path) { %>
-            <img src="<%= product.image_path %>" class="img-fluid rounded shadow" alt="<%= product.name %>">
-        <% } else { %>
-            <div class="bg-secondary text-white d-flex align-items-center justify-content-center rounded" style="height: 400px;">
-                <span class="fs-4">No image available</span>
-            </div>
-        <% } %>
-    </div>
-    <div class="col-md-6">
-        <h1 class="mb-3"><%= product.name %></h1>
-        <p class="lead mb-4"><%= product.description %></p>
-        <h3 class="mb-4">$<%= product.price.toFixed(2) %></h3>
-        
-        <div class="mb-4">
-            <% if (product.stock_quantity > 0) { %>
-                <p class="text-success fs-5">In Stock (<%= product.stock_quantity %> available)</p>
-                <button class="btn btn-lg btn-primary w-100">Add to Cart</button>
-            <% } else { %>
-                <p class="text-danger fs-5">Out of Stock</p>
-                <button class="btn btn-lg btn-secondary w-100" disabled>Out of Stock</button>
-            <% } %>
-        </div>
-
-        <% if (product.categories && product.categories.length > 0) { %>
-            <div class="mb-4">
-                <h4>Categories</h4>
-                <div class="d-flex gap-2 flex-wrap">
-                    <% product.categories.forEach(category => { %>
-                        <a href="/categories/<%= category.category_id %>" 
-                           class="badge bg-secondary text-decoration-none">
-                            <%= category.name %>
-                        </a>
+<% if (priceHistory && priceHistory.length > 0) { %>
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3>Price History</h3>
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% priceHistory.forEach(history => { %>
+                        <tr>
+                            <td><%= new Date(history.updated_at).toLocaleDateString() %></td>
+                            <td>$<%= typeof history.price === 'number' ? history.price.toFixed(2) : parseFloat(history.price).toFixed(2) %></td>
+                        </tr>
                     <% }); %>
-                </div>
-            </div>
-        <% } %>
+                </tbody>
+            </table>
+        </div>
     </div>
-</div>
+    <% } %>

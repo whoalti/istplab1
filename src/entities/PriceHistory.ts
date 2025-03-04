@@ -7,7 +7,14 @@ export class PriceHistory {
     @PrimaryGeneratedColumn('uuid')
     price_history_id: string;
 
-    @Column('decimal', {precision: 10, scale: 2})
+    @Column('decimal', { 
+        precision: 10, 
+        scale: 2,
+        transformer: {
+            to: (value: number) => value,
+            from: (value: string) => parseFloat(value)
+        }
+    })
     price: number; 
 
     @CreateDateColumn()
