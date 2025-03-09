@@ -71,7 +71,11 @@ export class ProductController {
 
             await queryRunner.commitTransaction();
 
-            res.status(201).json(savedProduct);
+            if (req.xhr || req.headers.accept?.includes('application/json')) {
+                return res.status(201).json(savedProduct);
+            }
+            
+            return res.redirect(`/products/${savedProduct.product_id}`);
 
         } catch (error) {
             await queryRunner.rollbackTransaction();

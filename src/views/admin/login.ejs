@@ -1,0 +1,89 @@
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">Admin Login</h1>
+        <p class="lead">Sign in to administrator panel</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form action="/api/admins/login" method="POST" id="admin-login-form">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    
+                    <div class="alert alert-danger d-none" id="error-message"></div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+                
+                <div class="mt-3 text-center">
+                    <p><a href="/">Return to Store</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('admin-login-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const errorMessage = document.getElementById('error-message');
+    errorMessage.classList.add('d-none');
+    
+    const formData = {
+        username: document.getElementById('username').value,
+        password: document.getElementById('password').value
+    };
+    
+    fetch('/api/admins/login', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => {
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+            return response.json().then(data => {
+                if (!response.ok) {
+                    throw new Error(data.message || 'Login failed');
+                }
+                return data;
+            });
+        } else {
+            throw new Error('Server error: Invalid response format');
+        }
+    })
+    .then(data => {
+        if (data.token) {
+            localStorage.setItem('admin_token', data.token);
+            
+            document.cookie = `token=${data.token}; path=/; max-age=86400`;
+            
+            window.location.href = '/admin/dashboard';
+        } else {
+            errorMessage.textContent = data.message || 'Login failed. Please try again.';
+            errorMessage.classList.remove('d-none');
+        }
+    })
+    .catch(error => {
+        errorMessage.textContent = error.message || 'An error occurred. Please try again.';
+        errorMessage.classList.remove('d-none');
+        console.error('Error:', error);
+    });
+});
+</script>

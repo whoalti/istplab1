@@ -2,35 +2,75 @@ import { Request, Response, NextFunction } from 'express';
 import { AppDataSource } from '../config/database';
 import { Purchase } from '../entities/Purchase';
 import { Product } from '../entities/Product';
+import { Buyer } from '../entities/Buyer';
 import { Statistics } from '../entities/Statistics';
 import { CustomError } from '../utils/errors';
 
 export class PurchaseController {
     private purchaseRepository = AppDataSource.getRepository(Purchase);
     private productRepository = AppDataSource.getRepository(Product);
+    private buyerRepository = AppDataSource.getRepository(Buyer);
     private statisticsRepository = AppDataSource.getRepository(Statistics);
 
-    createPurchase = async (req: Request, res: Response, next: NextFunction) => {
+    getAllPurchases = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const purchases = await this.purchaseRepository.find({
+                relations: ['buyer', 'product'],
+                order: { purchase_date: 'DESC' }
+            });
+            
+            res.json(purchases);
+        } catch (error) {
+            next(new CustomError('Failed to fetch purchases', 500));
+        }
+    }
+
+    getPurchaseById = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const purchase = await this.purchaseRepository.findOne({
+                where: { purchase_id: req.params.id },
+                relations: ['buyer', 'product']
+            });
+
+            if (!purchase) {
+                return next(new CustomError('Purchase not found', 404));
+            }
+
+            res.json(purchase);
+        } catch (error) {
+            next(new CustomError('Failed to fetch purchase', 500));
+        }
+    }
+
+    createPurchase = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
 
         try {
-            const { productId, amount } = req.body;
-            const buyerId = req?.user?.buyer_id; 
+            const { productId, quantity = 1 } = req.body;
+            const buyerId = req.user?.buyer_id;
+
+            if (!buyerId) {
+                next(new CustomError('User not authenticated', 401));
+                return;
+            }
 
             const product = await this.productRepository.findOne({
                 where: { product_id: productId }
             });
 
             if (!product) {
-                throw new CustomError('Product not found', 404);
+                next(new CustomError('Product not found', 404));
+                return;
             }
 
-            if (product.stock_quantity < 1) {
-                throw new CustomError('Product out of stock', 400);
+            if (product.stock_quantity < quantity) {
+                next(new CustomError(`Not enough stock. Only ${product.stock_quantity} available.`, 400));
+                return;
             }
 
+            const amount = product.price * quantity;
 
             const purchase = this.purchaseRepository.create({
                 amount,
@@ -38,8 +78,7 @@ export class PurchaseController {
                 product: { product_id: productId }
             });
 
-
-            product.stock_quantity -= 1;
+            product.stock_quantity -= quantity;
 
             let statistics = await this.statisticsRepository.findOne({
                 where: { product: { product_id: productId } }
@@ -53,7 +92,7 @@ export class PurchaseController {
                 });
             }
 
-            statistics.total_sales += 1;
+            statistics.total_sales += quantity;
             statistics.total_revenue += amount;
 
             await queryRunner.manager.save(product);
@@ -62,18 +101,31 @@ export class PurchaseController {
 
             await queryRunner.commitTransaction();
 
-            res.status(201).json(purchase);
+            if (req.xhr || req.headers.accept?.includes('application/json')) {
+                res.status(201).json({
+                    message: 'Purchase successful',
+                    purchase
+                });
+                return;
+            }
+            
+            res.redirect('/buyers/profile');
+            return;
         } catch (error) {
             await queryRunner.rollbackTransaction();
             next(error);
         } finally {
             await queryRunner.release();
         }
-    };
+    }
 
     getUserPurchases = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const buyerId = req.user.buyer_id;
+            const buyerId = req.user?.buyer_id;
+
+            if (!buyerId) {
+                return next(new CustomError('User not authenticated', 401));
+            }
 
             const purchases = await this.purchaseRepository.find({
                 where: { buyer: { buyer_id: buyerId } },
@@ -85,37 +137,21 @@ export class PurchaseController {
         } catch (error) {
             next(error);
         }
-    };
-
-    getPurchaseById = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const purchase = await this.purchaseRepository.findOne({
-                where: { 
-                    purchase_id: req.params.id,
-                    buyer: { buyer_id: req.user.buyer_id }
-                },
-                relations: ['product']
-            });
-
-            if (!purchase) {
-                throw new CustomError('Purchase not found', 404);
-            }
-
-            res.json(purchase);
-        } catch (error) {
-            next(error);
-        }
-    };
+    }
 
     getPurchaseStatistics = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const buyerId = req.user.buyer_id;
+            const buyerId = req.user?.buyer_id;
+
+            if (!buyerId) {
+                return next(new CustomError('User not authenticated', 401));
+            }
 
             const purchases = await this.purchaseRepository.find({
                 where: { buyer: { buyer_id: buyerId } }
             });
 
-            const totalSpent = purchases.reduce((sum, purchase) => sum + purchase.amount, 0);
+            const totalSpent = purchases.reduce((sum, purchase) => sum + parseFloat(purchase.amount.toString()), 0);
             const purchaseCount = purchases.length;
 
             res.json({
@@ -126,5 +162,100 @@ export class PurchaseController {
         } catch (error) {
             next(error);
         }
-    };
+    }
+
+    getFilteredPurchases = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const { startDate, endDate, buyerId, productId } = req.query;
+            
+            const queryBuilder = this.purchaseRepository.createQueryBuilder('purchase')
+                .leftJoinAndSelect('purchase.buyer', 'buyer')
+                .leftJoinAndSelect('purchase.product', 'product')
+                .orderBy('purchase.purchase_date', 'DESC');
+            
+            if (startDate && endDate) {
+                queryBuilder.andWhere(
+                    'purchase.purchase_date BETWEEN :startDate AND :endDate',
+                    { 
+                        startDate: new Date(startDate as string), 
+                        endDate: new Date(endDate as string) 
+                    }
+                );
+            }
+            
+            if (buyerId) {
+                queryBuilder.andWhere('buyer.buyer_id = :buyerId', { buyerId });
+            }
+            
+            if (productId) {
+                queryBuilder.andWhere('product.product_id = :productId', { productId });
+            }
+            
+            const purchases = await queryBuilder.getMany();
+            
+            res.json(purchases);
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    checkoutView = async (req: Request, res: Response) => {
+        try {
+            const { productId } = req.params;
+            
+            const product = await this.productRepository.findOne({
+                where: { product_id: productId },
+                relations: ['categories']
+            });
+            
+            if (!product) {
+                return res.status(404).render('error', {
+                    title: 'Product Not Found',
+                    message: 'The requested product could not be found'
+                });
+            }
+            
+            res.render('purchases/checkout', {
+                title: 'Checkout',
+                product,
+                quantity: 1,
+                totalAmount: product.price
+            });
+        } catch (error) {
+            console.error('Error rendering checkout page:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while loading the checkout page'
+            });
+        }
+    }
+
+    confirmationView = async (req: Request, res: Response) => {
+        try {
+            const { purchaseId } = req.params;
+            
+            const purchase = await this.purchaseRepository.findOne({
+                where: { purchase_id: purchaseId },
+                relations: ['product']
+            });
+            
+            if (!purchase) {
+                return res.status(404).render('error', {
+                    title: 'Purchase Not Found',
+                    message: 'The requested purchase could not be found'
+                });
+            }
+            
+            res.render('purchases/confirmation', {
+                title: 'Order Confirmation',
+                purchase
+            });
+        } catch (error) {
+            console.error('Error rendering confirmation page:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while loading the confirmation page'
+            });
+        }
+    }
 }

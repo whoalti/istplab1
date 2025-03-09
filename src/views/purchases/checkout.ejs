@@ -1,0 +1,165 @@
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/products">Products</a></li>
+                <li class="breadcrumb-item"><a href="/products/<%= product.product_id %>"><%= product.name %></a></li>
+                <li class="breadcrumb-item active" aria-current="page">Checkout</li>
+            </ol>
+        </nav>
+        <h1 class="display-4">Checkout</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-4">Order Summary</h5>
+                
+                <div class="d-flex mb-4">
+                    <% if (product.image_path) { %>
+                        <img src="<%= product.image_path %>" alt="<%= product.name %>" class="img-thumbnail me-3" style="width: 100px; height: 100px; object-fit: cover;">
+                    <% } else { %>
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 100px; height: 100px;">
+                            <span>No image</span>
+                        </div>
+                    <% } %>
+                    
+                    <div>
+                        <h5><%= product.name %></h5>
+                        <p class="text-muted mb-1">
+                            <% if (product.categories && product.categories.length > 0) { %>
+                                <%= product.categories.map(c => c.name).join(', ') %>
+                            <% } %>
+                        </p>
+                        <p class="mb-0">Price: $<%= product.price.toFixed(2) %></p>
+                    </div>
+                </div>
+                
+                <form id="checkout-form">
+                    <input type="hidden" id="product-id" value="<%= product.product_id %>">
+                    
+                    <div class="mb-3">
+                        <label for="quantity" class="form-label">Quantity</label>
+                        <input type="number" class="form-control" id="quantity" name="quantity" value="<%= quantity %>" min="1" max="<%= product.stock_quantity %>" required>
+                        <div class="form-text"><%= product.stock_quantity %> available in stock</div>
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Subtotal:</span>
+                        <span id="subtotal">$<%= (product.price * quantity).toFixed(2) %></span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Shipping:</span>
+                        <span>$0.00</span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Tax:</span>
+                        <span id="tax">$<%= (product.price * quantity * 0.08).toFixed(2) %></span>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between fw-bold fs-5 mt-2">
+                        <span>Total:</span>
+                        <span id="total">$<%= (product.price * quantity * 1.08).toFixed(2) %></span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-4">Payment Details</h5>
+                
+                <form id="payment-form">
+                    <div class="mb-3">
+                        <label for="card-name" class="form-label">Name on Card</label>
+                        <input type="text" class="form-control" id="card-name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="card-number" class="form-label">Card Number</label>
+                        <input type="text" class="form-control" id="card-number" placeholder="XXXX XXXX XXXX XXXX" required>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="expiry-date" class="form-label">Expiry Date</label>
+                            <input type="text" class="form-control" id="expiry-date" placeholder="MM/YY" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="cvv" class="form-label">CVV</label>
+                            <input type="text" class="form-control" id="cvv" placeholder="XXX" required>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-danger d-none" id="error-message"></div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Complete Purchase</button>
+                        <a href="/products/<%= product.product_id %>" class="btn btn-outline-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('quantity').addEventListener('change', function() {
+        const quantity = parseInt(this.value);
+        const price = prodct.price;
+        
+        const subtotal = price * quantity;
+        const tax = subtotal * 0.08;
+        const total = subtotal + tax;
+        
+        document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
+        document.getElementById('tax').textContent = '$' + tax.toFixed(2);
+        document.getElementById('total').textContent = '$' + total.toFixed(2);
+    });
+    
+    document.getElementById('payment-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const errorMessage = document.getElementById('error-message');
+        errorMessage.classList.add('d-none');
+        
+        const productId = document.getElementById('product-id').value;
+        const quantity = parseInt(document.getElementById('quantity').value);
+        
+        fetch('/api/purchases', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('token')
+            },
+            body: JSON.stringify({
+                productId,
+                quantity
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.purchase) {
+                window.location.href = '/orders/confirmation/' + data.purchase.purchase_id;
+            } else {
+                errorMessage.textContent = data.message || 'Failed to process purchase. Please try again.';
+                errorMessage.classList.remove('d-none');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.classList.remove('d-none');
+        });
+    });
+</script>

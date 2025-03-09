@@ -1,0 +1,239 @@
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">Admin Dashboard</h1>
+        <p class="lead">Store management panel</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <h5 class="card-title">Products</h5>
+                <h2 class="display-6"><%= stats.totalProducts %></h2>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/products" class="text-white text-decoration-none">View all products <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <h5 class="card-title">Total Revenue</h5>
+                <h2 class="display-6">$<%= stats.totalRevenue.toFixed(2) %></h2>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/admin/statistics" class="text-white text-decoration-none">View statistics <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <h5 class="card-title">Orders</h5>
+                <h2 class="display-6"><%= stats.totalPurchases %></h2>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/admin/orders" class="text-white text-decoration-none">View all orders <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <h5 class="card-title">Customers</h5>
+                <h2 class="display-6"><%= stats.totalBuyers %></h2>
+            </div>
+            <div class="card-footer bg-transparent border-0">
+                <a href="/admin/customers" class="text-white text-decoration-none">View all customers <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Top Selling Products</h5>
+            </div>
+            <div class="card-body">
+                <% if (stats.topSellingProducts && stats.topSellingProducts.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Sales</th>
+                                    <th>Revenue</th>
+                                    <th>Stock</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% stats.topSellingProducts.forEach(stat => { %>
+                                    <tr>
+                                        <td>
+                                            <a href="/products/<%= stat.product.product_id %>">
+                                                <%= stat.product.name %>
+                                            </a>
+                                        </td>
+                                        <td>$<%= stat.product.price.toFixed(2) %></td>
+                                        <td><%= stat.total_sales %></td>
+                                        <td>$<%= (stat.total_revenue || 0).toFixed(2) %></td>
+                                        <td><%= stat.product.stock_quantity %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="alert alert-info">
+                        No sales data available yet.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-7">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Recent Orders</h5>
+            </div>
+            <div class="card-body">
+                <% if (stats.recentPurchases && stats.recentPurchases.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% stats.recentPurchases.forEach(purchase => { %>
+                                    <tr>
+                                        <td><%= new Date(purchase.purchase_date).toLocaleDateString() %></td>
+                                        <td><%= purchase.buyer.username %></td>
+                                        <td>
+                                            <a href="/products/<%= purchase.product.product_id %>">
+                                                <%= purchase.product.name %>
+                                            </a>
+                                        </td>
+                                        <td>$<%= typeof purchase.amount === 'number' ? purchase.amount.toFixed(2) : parseFloat(purchase.amount).toFixed(2) %></td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="alert alert-info">
+                        No recent orders.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Low Stock Products</h5>
+            </div>
+            <div class="card-body">
+                <% if (stats.lowStockProducts && stats.lowStockProducts.length > 0) { %>
+                    <div class="list-group">
+                        <% stats.lowStockProducts.forEach(product => { %>
+                            <a href="/products/<%= product.product_id %>/edit" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1"><%= product.name %></h6>
+                                    <small class="text-danger"><%= product.stock_quantity %> left</small>
+                                </div>
+                                <p class="mb-1">$<%= product.price.toFixed(2) %></p>
+                            </a>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <div class="alert alert-success">
+                        All products are well stocked.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Quick Actions</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="/products/new" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-circle"></i> Add Product
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="/api/categories/new" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-folder-plus"></i> Add Category
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="/admin/statistics" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-graph-up"></i> View Statistics
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <button id="update-stats-btn" class="btn btn-outline-secondary w-100">
+                            <i class="bi bi-arrow-repeat"></i> Update Statistics
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('update-stats-btn').addEventListener('click', function() {
+        this.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...';
+        this.disabled = true;
+        
+        fetch('/api/statistics/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + localStorage.getItem('admin_token')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Statistics updated successfully!');
+                window.location.reload();
+            } else {
+                alert('Failed to update statistics: ' + (data.message || 'Unknown error'));
+                this.innerHTML = '<i class="bi bi-arrow-repeat"></i> Update Statistics';
+                this.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while updating statistics.');
+            this.innerHTML = '<i class="bi bi-arrow-repeat"></i> Update Statistics';
+            this.disabled = false;
+        });
+    });
+</script>

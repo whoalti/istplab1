@@ -3,21 +3,28 @@ dotenv.config();
 
 import 'reflect-metadata';
 import express from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { AppDataSource } from './config/database';
 import { productRouter } from './routes/products';
 import { categoryRouter } from './routes/categories';
+import { buyerRouter } from './routes/buyers';
+import { adminRouter } from './routes/administrators';
+import { purchaseRouter } from './routes/purchase';
+import { statisticsRouter } from './routes/statistics';
 import path from 'path';
 import expressEjsLayouts from 'express-ejs-layouts';
 import { ProductController } from './controllers/productController';
 import { CategoryController } from './controllers/categoryController';
 import { Like, Between } from 'typeorm';
 import { CustomError } from './utils/errors';
+import cookieParser from 'cookie-parser';
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
+app.use(cookieParser());
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -31,6 +38,10 @@ app.use('/public', express.static(publicFolder));
 
 app.use('/api/products', productRouter);
 app.use('/api/categories', categoryRouter);
+app.use(buyerRouter);
+app.use(adminRouter);
+app.use(purchaseRouter);
+app.use(statisticsRouter);
 
 app.get('/health', (req, res) => {
     res.json({status: 'ok'});
@@ -198,6 +209,29 @@ app.get('/products/:id', async (req, res) => {
     }
 });
 
+app.get('/logout', (req, res) => {
+    res.clearCookie('token');
+    
+
+    res.send(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Logging out...</title>
+            <script>
+                localStorage.removeItem('token');
+                localStorage.removeItem('admin_token');
+                
+                window.location.href = '/';
+            </script>
+        </head>
+        <body>
+            <p>Logging out...</p>
+        </body>
+        </html>
+    `);
+});
+
 app.get('/search', async (req, res) => {
     try {
         const productController = new ProductController();
@@ -257,7 +291,6 @@ app.post('/api/products', async (req, res) => {
     try {
         const productController = new ProductController();
         await productController.createProduct(req, res);
-        // The controller handles the response
     } catch (error) {
         console.error('Error creating product:', error);
         res.status(500).render('error', {
@@ -318,16 +351,29 @@ app.use((req, res) => {
 });
 
 
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-    console.error(err);
-    const statusCode = err.statusCode || 500;
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+    console.error('Error occurred:', err);
+    const statusCode = err instanceof CustomError ? err.statusCode : 500;
     const message = err.message || 'An unexpected error occurred';
     
-    res.status(statusCode).render('error', {
-        title: 'Error',
-        message
-    });
-});
+    const isApiRequest = 
+        req.xhr || 
+        req.path.startsWith('/api/') || 
+        req.headers.accept?.includes('application/json');
+    
+    if (isApiRequest) {
+        res.status(statusCode).json({
+            success: false,
+            message: message,
+            status: statusCode
+        });
+    } else {
+        res.status(statusCode).render('error', {
+            title: 'Error',
+            message
+        });
+    }
+  });
 
 const startServer = async () => {
     try {

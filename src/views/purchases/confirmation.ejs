@@ -1,0 +1,74 @@
+<div class="row mb-4">
+    <div class="col text-center">
+        <div class="mb-4">
+            <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+        </div>
+        <h1 class="display-4">Order Confirmed!</h1>
+        <p class="lead">Thank you for your purchase. Your order has been received.</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Order Details</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Order Number:</strong></p>
+                        <p class="text-muted"><%= purchase.purchase_id %></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Date:</strong></p>
+                        <p class="text-muted"><%= new Date(purchase.purchase_date).toLocaleString() %></p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <h6 class="mb-3">Product</h6>
+                <div class="d-flex mb-4">
+                    <% if (purchase.product.image_path) { %>
+                        <img src="<%= purchase.product.image_path %>" alt="<%= purchase.product.name %>" class="img-thumbnail me-3" style="width: 100px; height: 100px; object-fit: cover;">
+                    <% } else { %>
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 100px; height: 100px;">
+                            <span>No image</span>
+                        </div>
+                    <% } %>
+                    
+                    <div>
+                        <h5><%= purchase.product.name %></h5>
+                        <p class="text-muted mb-1"><%= purchase.product.description %></p>
+                        <p class="mb-0">Price: $<%= purchase.product.price.toFixed(2) %></p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Payment Method:</strong></p>
+                        <p class="text-muted">Credit Card</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>Total Amount:</strong></p>
+                        <p class="text-primary fw-bold">$<%= typeof purchase.amount === 'number' ? purchase.amount.toFixed(2) : parseFloat(purchase.amount).toFixed(2) %></p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="alert alert-info">
+                    <p class="mb-0">A confirmation email has been sent to your email address.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+            <a href="/products" class="btn btn-outline-primary me-md-2">Continue Shopping</a>
+            <a href="/profile" class="btn btn-primary">View Your Orders</a>
+        </div>
+    </div>
+</div>

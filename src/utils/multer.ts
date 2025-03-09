@@ -3,10 +3,8 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// Use a relative path that will be consistent in both development and production
 const uploadDir = path.join(process.cwd(), 'src', 'public', 'uploads', 'products_images');
 
-// Ensure the directory exists
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir, { recursive: true });
     console.log(`Created directory: ${uploadDir}`);
@@ -22,7 +20,6 @@ export const storage = multer.diskStorage({
     }
 });
 
-// The URL path prefix that will be used to access files
 const urlPrefix = '/public/uploads/products_images/';
 
 export const upload = multer({
@@ -40,7 +37,6 @@ export const upload = multer({
     }
 });
 
-// Helper function to convert file path to URL
 export const filePathToUrl = (filePath: string): string => {
     if (!filePath) return '';
     

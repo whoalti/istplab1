@@ -9,7 +9,7 @@ export class CategoryController {
 
     getAllCategories = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            // Use a simple find without relations for API
+
             const categories = await this.categoryRepository.find();
             res.json(categories);
         } catch (error) {
@@ -114,10 +114,8 @@ export class CategoryController {
         }
     }
 
-    // New methods for views
     getAllCategoriesForView = async (req: Request, res: Response): Promise<ProductCategory[]> => {
         try {
-            // Simple find without relations for view
             const categories = await this.categoryRepository.find();
             console.log('Found categories:', categories.length);
             return categories;
@@ -129,7 +127,6 @@ export class CategoryController {
 
     getCategoryForView = async (req: Request, res: Response): Promise<ProductCategory | null> => {
         try {
-            // First find the category
             const category = await this.categoryRepository.findOne({
                 where: { category_id: req.params.id }
             });
@@ -138,7 +135,6 @@ export class CategoryController {
                 return null;
             }
             
-            // Then get the products in a separate query
             const productsQuery = AppDataSource.getRepository(Product)
                 .createQueryBuilder('product')
                 .innerJoin('product.categories', 'category')
@@ -146,7 +142,6 @@ export class CategoryController {
                 
             const products = await productsQuery.getMany();
             
-            // Manually add the products to the category
             category.products = products;
             
             return category;
