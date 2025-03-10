@@ -1,0 +1,123 @@
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/admin/customers">Customers</a></li>
+                <li class="breadcrumb-item active" aria-current="page"><%= customer.username %></li>
+            </ol>
+        </nav>
+        <h1 class="display-4">Customer Details</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-center mb-4">
+                    <div class="bg-light rounded-circle p-3" style="width: 100px; height: 100px;">
+                        <i class="bi bi-person-circle text-primary" style="font-size: 4rem;"></i>
+                    </div>
+                </div>
+                
+                <h3 class="text-center mb-4"><%= customer.username %></h3>
+                
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Customer ID:</span>
+                        <span class="text-muted"><%= customer.buyer_id %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Total Orders:</span>
+                        <span class="badge bg-primary rounded-pill"><%= stats.purchaseCount %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Total Spent:</span>
+                        <span class="text-primary fw-bold">$<%= stats.totalSpent.toFixed(2) %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Average Order Value:</span>
+                        <span>$<%= stats.avgOrderValue.toFixed(2) %></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Order History</h5>
+                <div class="input-group" style="width: 200px;">
+                    <input type="text" class="form-control form-control-sm" id="orderSearch" placeholder="Search orders...">
+                </div>
+            </div>
+            <div class="card-body">
+                <% if (purchases && purchases.length > 0) { %>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="ordersTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Product</th>
+                                    <th>Amount</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% purchases.forEach(purchase => { %>
+                                    <tr>
+                                        <td><%= new Date(purchase.purchase_date).toLocaleDateString() %></td>
+                                        <td>
+                                            <a href="/products/<%= purchase.product.product_id %>">
+                                                <%= purchase.product.name %>
+                                            </a>
+                                        </td>
+                                        <td>$<%= typeof purchase.amount === 'number' ? purchase.amount.toFixed(2) : parseFloat(purchase.amount).toFixed(2) %></td>
+                                        <td>
+                                            <a href="/admin/orders/<%= purchase.purchase_id %>" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% } else { %>
+                    <div class="alert alert-info">
+                        This customer hasn't made any purchases yet.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('orderSearch');
+        const table = document.getElementById('ordersTable');
+        
+        if (searchInput && table) {
+            searchInput.addEventListener('keyup', function() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const rows = table.querySelectorAll('tbody tr');
+                
+                rows.forEach(row => {
+                    const product = row.cells[1].textContent.toLowerCase();
+                    
+                    if (product.includes(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+    });
+</script>

@@ -20,13 +20,41 @@
         <div class="card-footer bg-white border-top-0 pt-0">
             <div class="d-grid gap-2">
                 <a href="/products/<%= product.product_id %>" class="btn btn-outline-primary">View Details</a>
+                
+                <!-- Buy button - only for buyers or non-authenticated users -->
                 <% if (product.stock_quantity > 0) { %>
-                    <a href="/checkout/<%= product.product_id %>" class="btn btn-primary">Buy Now</a>
+                    <a href="/checkout/<%= product.product_id %>" class="btn btn-primary buy-now-btn">Buy Now</a>
                 <% } %>
-                <a href="/products/<%= product.product_id %>/edit" class="btn btn-secondary">
+                
+                <!-- Edit button - only for admins (hidden by default) -->
+                <a href="/products/<%= product.product_id %>/edit" class="btn btn-secondary admin-action" style="display: none;">
                     Edit Product
                 </a>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Add this script at the end of your partial or in your main layout file -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if user is an admin
+        const adminToken = localStorage.getItem('admin_token');
+        const isAdmin = !!adminToken;
+        
+        // Show/hide admin actions based on role
+        const adminActions = document.querySelectorAll('.admin-action');
+        const buyNowButtons = document.querySelectorAll('.buy-now-btn');
+        
+        adminActions.forEach(el => {
+            el.style.display = isAdmin ? 'block' : 'none';
+        });
+        
+        // Optional: Hide buy buttons for admin (if you want a cleaner admin interface)
+        if (isAdmin) {
+            buyNowButtons.forEach(el => {
+                el.style.display = 'none';
+            });
+        }
+    });
+</script>

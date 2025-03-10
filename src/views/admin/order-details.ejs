@@ -1,0 +1,106 @@
+<div class="row mb-4">
+    <div class="col">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/admin/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/admin/orders">Orders</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Order <%= order.purchase_id.substring(0, 8) %></li>
+            </ol>
+        </nav>
+        <h1 class="display-4">Order Details</h1>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">Order Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Order ID:</span>
+                        <span class="text-muted"><%= order.purchase_id %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Date:</span>
+                        <span><%= new Date(order.purchase_date).toLocaleString() %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Amount:</span>
+                        <span class="text-primary fw-bold">$<%= typeof order.amount === 'number' ? order.amount.toFixed(2) : parseFloat(order.amount).toFixed(2) %></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Payment Method:</span>
+                        <span>Credit Card</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="card shadow-sm">
+            <div class="card-header bg-info text-white">
+                <h5 class="card-title mb-0">Customer Information</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Username:</span>
+                        <span>
+                            <a href="/admin/customers/<%= order.buyer.buyer_id %>">
+                                <%= order.buyer.username %>
+                            </a>
+                        </span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Customer ID:</span>
+                        <span class="text-muted"><%= order.buyer.buyer_id %></span>
+                    </li>
+                </ul>
+                
+                <div class="d-grid mt-3">
+                    <a href="/admin/customers/<%= order.buyer.buyer_id %>" class="btn btn-outline-info">
+                        <i class="bi bi-person"></i> View Customer Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="card-title mb-0">Product Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex mb-4">
+                    <% if (order.product.image_path) { %>
+                        <img src="<%= order.product.image_path %>" class="img-thumbnail me-3" style="width: 100px; height: 100px; object-fit: cover;" alt="<%= order.product.name %>">
+                    <% } else { %>
+                        <div class="bg-secondary text-white d-flex align-items-center justify-content-center me-3" style="width: 100px; height: 100px;">
+                            <span>No image</span>
+                        </div>
+                    <% } %>
+                    
+                    <div>
+                        <h5>
+                            <a href="/products/<%= order.product.product_id %>">
+                                <%= order.product.name %>
+                            </a>
+                        </h5>
+                        <p class="text-muted mb-1"><%= order.product.description %></p>
+                        <p class="mb-0">Price: $<%= typeof order.product.price === 'number' ? order.product.price.toFixed(2) : parseFloat(order.product.price).toFixed(2) %></p>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Quantity:</strong> 1</p>
+                    </div>
+                    <div class="col-md-6 text-md-end">
+                        <p><strong>Subtotal:</strong> $<%= typeof order.amount === 'number' ? order.amount.toFixed(2) : parseFloat(order.amount).toFixed(2) %></p>
+                    </div>
+                </div>

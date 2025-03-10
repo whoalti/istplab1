@@ -1,18 +1,22 @@
 import express, { Router, Request, Response } from 'express';
 import { ProductController } from '../controllers/productController';
 import { upload } from '../utils/multer';
+import { isAdmin, isAuthenticated } from '../middleware/auth';
 
 export const productRouter: Router = express.Router();
 const productController = new ProductController();
 
-
+// Public routes - accessible to all
 productRouter.get('/', productController.getAllProducts);
-productRouter.get('/:id', productController.getProductById);
-productRouter.post('/', upload.single('image'), productController.createProduct);
-productRouter.put('/:id', productController.updateProduct);
-productRouter.delete('/:id', productController.deleteProduct);
-productRouter.get('/:id/price-history', productController.getProductPriceHistory);
 productRouter.get('/search', productController.searchProducts);
-productRouter.post('/:productId/categories/:categoryId', productController.addProductToCategory);
-productRouter.patch('/:id/image', upload.single('image'), productController.updateProductImage);
 productRouter.get('/featured/list', productController.getFeaturedProducts);
+productRouter.get('/:id/price-history', productController.getProductPriceHistory);
+productRouter.get('/:id', productController.getProductById);
+
+// Admin-only routes - protected
+productRouter.post('/', isAdmin, upload.single('image'), productController.createProduct);
+// Fix: Add upload middleware to the PUT route
+productRouter.put('/:id', isAdmin, upload.single('image'), productController.updateProduct);
+productRouter.delete('/:id', isAdmin, productController.deleteProduct);
+productRouter.post('/:productId/categories/:categoryId', isAdmin, productController.addProductToCategory);
+productRouter.patch('/:id/image', isAdmin, upload.single('image'), productController.updateProductImage);

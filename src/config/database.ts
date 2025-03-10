@@ -31,5 +31,5 @@ export const AppDataSource = new DataSource({
         Statistics
     ],
     synchronize: true,
-    logging: true
+    logging: false
 });

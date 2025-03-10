@@ -18,12 +18,15 @@ import { CategoryController } from './controllers/categoryController';
 import { Like, Between } from 'typeorm';
 import { CustomError } from './utils/errors';
 import cookieParser from 'cookie-parser';
+import { isAdmin } from './middleware/auth';
+import methodOverride from 'method-override'
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 
 app.use(express.json());
 app.use(express.urlencoded({extended: true}));
+app.use(methodOverride('_method'));
 app.use(cookieParser());
 
 app.set('view engine', 'ejs');
@@ -132,7 +135,7 @@ app.get('/products', async (req, res) => {
     }
 });
 
-app.get('/products/new', async (req, res) => {
+app.get('/products/new', isAdmin, async (req, res) => {
     try {
         const categoryController = new CategoryController();
         const categories = await categoryController.getAllCategoriesForView(req, res);
@@ -151,7 +154,7 @@ app.get('/products/new', async (req, res) => {
     }
 });
 
-app.get('/products/:id/edit', async (req, res) => {
+app.get('/products/:id/edit', isAdmin, async (req, res) => {
     try {
         const productController = new ProductController();
         const categoryController = new CategoryController();
@@ -287,7 +290,7 @@ app.get('/featured', async (req, res) => {
     }
 });
 
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', isAdmin, async (req, res) => {
     try {
         const productController = new ProductController();
         await productController.createProduct(req, res);
@@ -301,11 +304,12 @@ app.post('/api/products', async (req, res) => {
 });
 
 
-app.post('/products/:id', async (req, res) => {
+app.post('/products/:id', isAdmin, async (req, res) => {
     try {
         const productController = new ProductController();
+        console.log(req.body)
         await productController.updateProduct(req, res);
-        res.redirect(`/products/${req.params.id}`);
+        // res.redirect(`/products/${req.params.id}`);
     } catch (error) {
         console.error('Error updating product:', error);
         res.status(500).render('error', {

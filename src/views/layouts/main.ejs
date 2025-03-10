@@ -28,14 +28,32 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/products">Products</a>
                     </li>
+                    <!-- Admin-only menu items -->
+                    <li class="nav-item admin-only" style="display: none;">
+                        <a class="nav-link" href="/admin/dashboard">Dashboard</a>
+                    </li>
+                    <li class="nav-item admin-only" style="display: none;">
+                        <a class="nav-link" href="/products/new">Add Product</a>
+                    </li>
                 </ul>
                 <form class="d-flex me-2" action="/search" method="GET">
                     <input class="form-control me-2" type="search" name="query" placeholder="Search products...">
                     <button class="btn btn-outline-light" type="submit">Search</button>
                 </form>
                 <ul class="navbar-nav">
-                    <li class="nav-item dropdown" id="user-menu">
-                        <a class="nav-link dropdown-toggle d-none" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <li class="nav-item dropdown" id="admin-menu" style="display: none;">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-person-badge"></i> <span id="admin-username-display">Admin</span>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                            <li><a class="dropdown-item" href="/admin/dashboard">Dashboard</a></li>
+                            <li><a class="dropdown-item" href="/products/new">Add Product</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown" id="user-menu" style="display: none;">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-person-circle"></i> <span id="username-display"></span>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
@@ -44,7 +62,7 @@
                             <li><a class="dropdown-item" href="/logout">Logout</a></li>
                         </ul>
                     </li>
-                    <li class="nav-item d-none" id="login-buttons">
+                    <li class="nav-item" id="login-buttons" style="display: none;">
                         <a class="btn btn-outline-light me-2" href="/login">Login</a>
                         <a class="btn btn-light" href="/register">Register</a>
                     </li>
@@ -53,10 +71,12 @@
         </div>
     </nav>
 
+    <!-- Main Content -->
     <main class="container flex-grow-1">
         <%- body %>
     </main>
 
+    <!-- Footer -->
     <footer class="bg-dark text-light py-4 mt-4">
         <div class="container">
             <div class="row">
@@ -76,47 +96,66 @@
         </div>
     </footer>
 
+    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
     
     <script>
+        // Check if user is logged in
         function checkAuthStatus() {
             const token = localStorage.getItem('token') || getCookie('token');
             const adminToken = localStorage.getItem('admin_token');
             
-            if (token) {
+            // Hide all auth-related elements first
+            document.getElementById('user-menu').style.display = 'none';
+            document.getElementById('admin-menu').style.display = 'none';
+            document.getElementById('login-buttons').style.display = 'none';
+            
+            // Hide admin-only elements
+            const adminOnlyElements = document.querySelectorAll('.admin-only');
+            adminOnlyElements.forEach(el => el.style.display = 'none');
+            
+            if (adminToken) {
+                // Admin is logged in
+                try {
+                    const decodedToken = jwt_decode(adminToken);
+                    document.getElementById('admin-menu').style.display = 'block';
+                    document.getElementById('admin-username-display').textContent = decodedToken.username || 'Admin';
+                    
+                    // Show admin-only elements
+                    adminOnlyElements.forEach(el => el.style.display = 'block');
+                } catch (error) {
+                    console.error('Error decoding admin token:', error);
+                    showLoginButtons();
+                }
+            } else if (token) {
+                // Regular user is logged in
                 try {
                     const decodedToken = jwt_decode(token);
-                    
-                    document.getElementById('user-menu').classList.remove('d-none');
-                    document.getElementById('login-buttons').classList.add('d-none');
-                    
-                    document.getElementById('userDropdown').classList.remove('d-none');
+                    document.getElementById('user-menu').style.display = 'block';
                     document.getElementById('username-display').textContent = decodedToken.username;
                 } catch (error) {
                     console.error('Error decoding token:', error);
                     showLoginButtons();
                 }
-            } else if (adminToken) {
-                document.getElementById('user-menu').classList.remove('d-none');
-                document.getElementById('login-buttons').classList.add('d-none');
-                document.getElementById('userDropdown').classList.remove('d-none');
-                document.getElementById('username-display').textContent = 'Admin';
             } else {
+                // No one is logged in
                 showLoginButtons();
             }
         }
         
         function showLoginButtons() {
-            document.getElementById('user-menu').classList.add('d-none');
-            document.getElementById('login-buttons').classList.remove('d-none');
+            document.getElementById('login-buttons').style.display = 'block';
         }
+        
+        // Helper function to get cookie value
         function getCookie(name) {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
         
+        // Check auth status on page load
         document.addEventListener('DOMContentLoaded', checkAuthStatus);
     </script>
 </body>

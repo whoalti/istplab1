@@ -2,15 +2,19 @@ import express, { Router } from 'express';
 import { CategoryController } from '../controllers/categoryController';
 import { AppDataSource } from '../config/database';
 import { ProductCategory } from '../entities/ProductCategory';
+import { isAdmin } from '../middleware/auth';
 
 export const categoryRouter: Router = express.Router();
 const categoryController = new CategoryController();
 
+// Public routes - accessible to all
 categoryRouter.get('/api/categories', categoryController.getAllCategories);
 categoryRouter.get('/api/categories/:id', categoryController.getCategoryById);
-categoryRouter.post('/api/categories', categoryController.createCategory);
-categoryRouter.put('/api/categories/:id', categoryController.updateCategory);
-categoryRouter.delete('/api/categories/:id', categoryController.deleteCategory);
+
+// Admin-only routes - protected
+categoryRouter.post('/api/categories', isAdmin, categoryController.createCategory);
+categoryRouter.put('/api/categories/:id', isAdmin, categoryController.updateCategory);
+categoryRouter.delete('/api/categories/:id', isAdmin, categoryController.deleteCategory);
 
 categoryRouter.get('/categories', async (req, res) => {
     try {

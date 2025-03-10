@@ -85,39 +85,79 @@ export class ProductController {
         }
     };
 
-    updateProduct = async (req: Request, res: Response) : Promise<any>=> {
+    updateProduct = async (req: Request, res: Response): Promise<any> => {
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
-
+    
         try {
+            console.log('Update Product - Request body:', req.body);
+            console.log('Update Product - Request file:', req.file);
+            
             const product = await this.productRepository.findOne({
-                where: { product_id: req.params.id }
+                where: { product_id: req.params.id },
+                relations: ['categories']
             });
-
+    
             if (!product) {
                 return res.status(404).json({ message: "Product not found" });
             }
-
+    
             const oldPrice = product.price;
             
-            this.productRepository.merge(product, req.body);
+            // Manual updating of fields to ensure they are processed correctly
+            if (req.body.name) product.name = req.body.name;
+            if (req.body.description) product.description = req.body.description;
+            if (req.body.price) product.price = parseFloat(req.body.price);
+            if (req.body.stock_quantity) product.stock_quantity = parseInt(req.body.stock_quantity);
+            
+            // Update image if provided
+            if (req.file) {
+                product.image_path = '/public/uploads/products_images/' + req.file.filename;
+            }
+            
             const updatedProduct = await queryRunner.manager.save(product);
-
-            if (req.body.price && req.body.price !== oldPrice) {
+    
+            // Handle category updates if needed
+            if (req.body.category) {
+                const categoryRepository = AppDataSource.getRepository(ProductCategory);
+                const category = await categoryRepository.findOne({
+                    where: { category_id: req.body.category }
+                });
+                
+                if (category) {
+                    // Save the new relationship
+                    product.categories = [category];
+                    await queryRunner.manager.save(product);
+                }
+            }
+    
+            // Update price history if price changed
+            if (req.body.price && parseFloat(req.body.price) !== parseFloat(oldPrice.toString())) {
                 const priceHistory = this.priceHistoryRepository.create({
-                    price: req.body.price,
+                    price: parseFloat(req.body.price),
                     product: updatedProduct
                 });
                 await queryRunner.manager.save(priceHistory);
             }
-
+    
             await queryRunner.commitTransaction();
-            res.json(updatedProduct);
-
+            
+            // Return success response
+            return res.json({
+                message: "Product updated successfully",
+                // product_id: updatedProduct.product_id,
+                ...updatedProduct
+            });
+    
         } catch (error) {
             await queryRunner.rollbackTransaction();
-            res.status(500).json({ message: "Error updating product", error });
+            console.error('Error updating product:', error);
+            
+            return res.status(500).json({ 
+                message: "Error updating product", 
+                error: error instanceof Error ? error.message : String(error) 
+            });
         } finally {
             await queryRunner.release();
         }
