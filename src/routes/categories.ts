@@ -7,11 +7,9 @@ import { isAdmin } from '../middleware/auth';
 export const categoryRouter: Router = express.Router();
 const categoryController = new CategoryController();
 
-// Public routes - accessible to all
 categoryRouter.get('/api/categories', categoryController.getAllCategories);
 categoryRouter.get('/api/categories/:id', categoryController.getCategoryById);
 
-// Admin-only routes - protected
 categoryRouter.post('/api/categories', isAdmin, categoryController.createCategory);
 categoryRouter.put('/api/categories/:id', isAdmin, categoryController.updateCategory);
 categoryRouter.delete('/api/categories/:id', isAdmin, categoryController.deleteCategory);

@@ -78,26 +78,31 @@
             <div class="card-body">
                 <h5 class="card-title mb-4">Payment Details</h5>
                 
-                <form id="payment-form">
+                <form id="payment-form" novalidate>
                     <div class="mb-3">
                         <label for="card-name" class="form-label">Name on Card</label>
                         <input type="text" class="form-control" id="card-name" required>
+                        <div class="invalid-feedback">Please enter the cardholder name</div>
                     </div>
                     
                     <div class="mb-3">
                         <label for="card-number" class="form-label">Card Number</label>
-                        <input type="text" class="form-control" id="card-number" placeholder="XXXX XXXX XXXX XXXX" required>
+                        <input type="text" class="form-control" id="card-number" placeholder="XXXX-XXXX-XXXX-XXXX" maxlength="19" required>
+                        <div class="invalid-feedback" id="card-number-feedback">Please enter a valid 16-digit card number</div>
+                        <div class="form-text">Example: 4111-1111-1111-1111</div>
                     </div>
                     
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="expiry-date" class="form-label">Expiry Date</label>
-                            <input type="text" class="form-control" id="expiry-date" placeholder="MM/YY" required>
+                            <input type="text" class="form-control" id="expiry-date" placeholder="MM/YY" maxlength="5" required>
+                            <div class="invalid-feedback" id="expiry-feedback">Please enter a valid expiry date (MM/YY)</div>
                         </div>
                         
                         <div class="col-md-6 mb-3">
                             <label for="cvv" class="form-label">CVV</label>
-                            <input type="text" class="form-control" id="cvv" placeholder="XXX" required>
+                            <input type="text" class="form-control" id="cvv" placeholder="XXX" maxlength="4" required>
+                            <div class="invalid-feedback" id="cvv-feedback">Please enter a valid 3-4 digit CVV</div>
                         </div>
                     </div>
                     
@@ -114,9 +119,89 @@
 </div>
 
 <script>
+
+    document.getElementById('card-number').addEventListener('input', function(e) {
+        let val = this.value.replace(/\D/g, ''); 
+        let newVal = '';
+        
+        for (let i = 0; i < val.length; i++) {
+            if (i > 0 && i % 4 === 0) {
+                newVal += '-';
+            }
+            newVal += val[i];
+        }
+        
+        this.value = newVal;
+        
+        const isValid = /^(\d{4}-){3}\d{4}$|^(\d{4}-){0,3}\d{0,4}$/.test(this.value);
+        
+        if (this.value.length > 0 && (!isValid || this.value.replace(/\D/g, '').length < 16)) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+    
+    document.getElementById('expiry-date').addEventListener('input', function(e) {
+        let val = this.value.replace(/\D/g, ''); // remove non-digits
+        
+        if (val.length > 2) {
+            this.value = val.substring(0, 2) + '/' + val.substring(2);
+        } else {
+            this.value = val;
+        }
+        
+        const isValid = /^\d{2}\/\d{2}$/.test(this.value);
+        
+        if (this.value.length > 0) {
+            if (!isValid) {
+                this.classList.add('is-invalid');
+                document.getElementById('expiry-feedback').textContent = 'Please enter a valid expiry date (MM/YY)';
+            } else {
+                const month = parseInt(this.value.substring(0, 2));
+                const year = parseInt('20' + this.value.substring(3, 5));
+                const currentDate = new Date();
+                const currentYear = currentDate.getFullYear();
+                const currentMonth = currentDate.getMonth() + 1;
+                
+                if (month < 1 || month > 12) {
+                    this.classList.add('is-invalid');
+                    document.getElementById('expiry-feedback').textContent = 'Month must be between 1 and 12';
+                } else if (year < currentYear || (year === currentYear && month < currentMonth)) {
+                    this.classList.add('is-invalid');
+                    document.getElementById('expiry-feedback').textContent = 'Card has expired';
+                } else {
+                    this.classList.remove('is-invalid');
+                }
+            }
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+    
+    document.getElementById('cvv').addEventListener('input', function(e) {
+        this.value = this.value.replace(/\D/g, ''); 
+        
+        const isValid = /^\d{3,4}$/.test(this.value);
+        
+        if (this.value.length > 0 && !isValid) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+    
+    document.getElementById('card-name').addEventListener('input', function(e) {
+        if (this.value.trim().length === 0) {
+            this.classList.add('is-invalid');
+        } else {
+            this.classList.remove('is-invalid');
+        }
+    });
+    
     document.getElementById('quantity').addEventListener('change', function() {
         const quantity = parseInt(this.value);
-        const price = prodct.price;
+        const price = parseFloat(<%= product.price %>);
         
         const subtotal = price * quantity;
         const tax = subtotal * 0.08;
@@ -133,33 +218,141 @@
         const errorMessage = document.getElementById('error-message');
         errorMessage.classList.add('d-none');
         
+        const cardName = document.getElementById('card-name');
+        const cardNumber = document.getElementById('card-number');
+        const expiryDate = document.getElementById('expiry-date');
+        const cvv = document.getElementById('cvv');
+        
+        let isValid = true;
+        
+        if (cardName.value.trim() === '') {
+            cardName.classList.add('is-invalid');
+            isValid = false;
+        }
+
+        if (!cardNumber.value.match(/^(\d{4}-){3}\d{4}$/)) {
+            cardNumber.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+
+        if (!expiryDate.value.match(/^\d{2}\/\d{2}$/)) {
+            expiryDate.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            const month = parseInt(expiryDate.value.substring(0, 2));
+            const year = parseInt('20' + expiryDate.value.substring(3, 5));
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            const currentMonth = currentDate.getMonth() + 1;
+            
+            if (month < 1 || month > 12) {
+                expiryDate.classList.add('is-invalid');
+                document.getElementById('expiry-feedback').textContent = 'Month must be between 1 and 12';
+                isValid = false;
+            } else if (year < currentYear || (year === currentYear && month < currentMonth)) {
+                expiryDate.classList.add('is-invalid');
+                document.getElementById('expiry-feedback').textContent = 'Card has expired';
+                isValid = false;
+            }
+        }
+        
+        if (!cvv.value.match(/^\d{3,4}$/)) {
+            cvv.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            errorMessage.textContent = 'Please correct the errors in the form';
+            errorMessage.classList.remove('d-none');
+            return;
+        }
+        
         const productId = document.getElementById('product-id').value;
         const quantity = parseInt(document.getElementById('quantity').value);
+        
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.disabled = true;
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+        
+        const cardDigits = cardNumber.value.replace(/\D/g, '');
+        const isValidCard = validateCreditCard(cardDigits);
+        
+        if (!isValidCard) {
+            errorMessage.textContent = 'Invalid card number. Please check and try again.';
+            errorMessage.classList.remove('d-none');
+            submitButton.disabled = false;
+            submitButton.textContent = 'Complete Purchase';
+            return;
+        }
         
         fetch('/api/purchases', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': 'Bearer ' + localStorage.getItem('token')
+                'Accept': 'application/json',
+                'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')
             },
             body: JSON.stringify({
                 productId,
                 quantity
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json().then(data => {
+                    if (!response.ok) {
+                        throw new Error(data.message || `Error: ${response.status}`);
+                    }
+                    return data;
+                });
+            } else {
+                throw new Error(`Server returned non-JSON response (${response.status})`);
+            }
+        })
         .then(data => {
             if (data.purchase) {
                 window.location.href = '/orders/confirmation/' + data.purchase.purchase_id;
             } else {
-                errorMessage.textContent = data.message || 'Failed to process purchase. Please try again.';
-                errorMessage.classList.remove('d-none');
+                throw new Error(data.message || 'Failed to process purchase. Please try again.');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.textContent = error.message || 'An error occurred. Please try again.';
             errorMessage.classList.remove('d-none');
+            
+            submitButton.disabled = false;
+            submitButton.textContent = 'Complete Purchase';
         });
     });
+    
+    function validateCreditCard(cardNumber) {
+        cardNumber = cardNumber.replace(/\D/g, '');
+        
+        if (cardNumber.length < 13 || cardNumber.length > 19) {
+            return false;
+        }
+        
+
+        let sum = 0;
+        let doubleUp = false;
+        
+        for (let i = cardNumber.length - 1; i >= 0; i--) {
+            let digit = parseInt(cardNumber.charAt(i));
+            
+            if (doubleUp) {
+                digit *= 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+            
+            sum += digit;
+            doubleUp = !doubleUp;
+        }
+        
+        return (sum % 10) === 0;
+    }
 </script>

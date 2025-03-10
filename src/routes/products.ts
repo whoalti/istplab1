@@ -6,16 +6,13 @@ import { isAdmin, isAuthenticated } from '../middleware/auth';
 export const productRouter: Router = express.Router();
 const productController = new ProductController();
 
-// Public routes - accessible to all
 productRouter.get('/', productController.getAllProducts);
 productRouter.get('/search', productController.searchProducts);
 productRouter.get('/featured/list', productController.getFeaturedProducts);
 productRouter.get('/:id/price-history', productController.getProductPriceHistory);
 productRouter.get('/:id', productController.getProductById);
 
-// Admin-only routes - protected
 productRouter.post('/', isAdmin, upload.single('image'), productController.createProduct);
-// Fix: Add upload middleware to the PUT route
 productRouter.put('/:id', isAdmin, upload.single('image'), productController.updateProduct);
 productRouter.delete('/:id', isAdmin, productController.deleteProduct);
 productRouter.post('/:productId/categories/:categoryId', isAdmin, productController.addProductToCategory);

@@ -105,20 +105,17 @@ export class ProductController {
     
             const oldPrice = product.price;
             
-            // Manual updating of fields to ensure they are processed correctly
             if (req.body.name) product.name = req.body.name;
             if (req.body.description) product.description = req.body.description;
             if (req.body.price) product.price = parseFloat(req.body.price);
             if (req.body.stock_quantity) product.stock_quantity = parseInt(req.body.stock_quantity);
             
-            // Update image if provided
             if (req.file) {
                 product.image_path = '/public/uploads/products_images/' + req.file.filename;
             }
             
             const updatedProduct = await queryRunner.manager.save(product);
     
-            // Handle category updates if needed
             if (req.body.category) {
                 const categoryRepository = AppDataSource.getRepository(ProductCategory);
                 const category = await categoryRepository.findOne({
@@ -126,13 +123,11 @@ export class ProductController {
                 });
                 
                 if (category) {
-                    // Save the new relationship
                     product.categories = [category];
                     await queryRunner.manager.save(product);
                 }
             }
     
-            // Update price history if price changed
             if (req.body.price && parseFloat(req.body.price) !== parseFloat(oldPrice.toString())) {
                 const priceHistory = this.priceHistoryRepository.create({
                     price: parseFloat(req.body.price),
@@ -143,7 +138,6 @@ export class ProductController {
     
             await queryRunner.commitTransaction();
             
-            // Return success response
             return res.json({
                 message: "Product updated successfully",
                 // product_id: updatedProduct.product_id,

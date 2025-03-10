@@ -89,22 +89,18 @@
     document.getElementById('product-form').addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Get UI elements
         const submitBtn = document.getElementById('submit-btn');
         const cancelBtn = document.getElementById('cancel-btn');
         const errorMsg = document.getElementById('error-message');
         const successMsg = document.getElementById('success-message');
         
-        // Reset messages
         errorMsg.classList.add('d-none');
         successMsg.classList.add('d-none');
         
-        // Disable buttons during submission
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
         cancelBtn.disabled = true;
         
-        // Create form data
         const formData = new FormData(this);
         const productId = document.getElementById('product_id')?.value;
         const isUpdate = !!productId;
@@ -112,7 +108,6 @@
         const url = isUpdate ? `/api/products/${productId}` : '/api/products';
         const method = isUpdate ? 'PUT' : 'POST';
         
-        // Get the auth token from cookie or localStorage
         const getCookie = (name) => {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
@@ -121,7 +116,6 @@
         
         const token = localStorage.getItem('admin_token') || getCookie('token') || '';
         
-        // Log what we're about to send
         console.log('Submitting form:', {
             url,
             method,
@@ -139,7 +133,6 @@
             body: formData
         })
         .then(response => {
-            // Check content type
             const contentType = response.headers.get('content-type');
             
             if (!response.ok) {
@@ -148,7 +141,6 @@
                         throw new Error(data.message || `Error: ${response.status} ${response.statusText}`);
                     });
                 } else {
-                    // If not JSON, it's likely an HTML error page
                     throw new Error(`Server error (${response.status}). Please try again.`);
                 }
             }
@@ -156,17 +148,14 @@
             if (contentType && contentType.includes('application/json')) {
                 return response.json();
             } else {
-                // If success but not JSON, create a fake success response
                 return { success: true };
             }
         })
         .then(data => {
             console.log('Success:', data);
             
-            // Show success message
             successMsg.classList.remove('d-none');
             
-            // Wait a moment, then redirect
             setTimeout(() => {
                 window.location.href = isUpdate 
                     ? `/products/${productId}` 
@@ -176,15 +165,12 @@
         .catch(error => {
             console.error('Error:', error);
             
-            // Show error message
             errorMsg.textContent = error.message || 'An error occurred while saving the product';
             errorMsg.classList.remove('d-none');
             
-            // Scroll to error
             errorMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
         })
         .finally(() => {
-            // Re-enable buttons
             submitBtn.disabled = false;
             submitBtn.innerHTML = isUpdate ? 'Update Product' : 'Add Product';
             cancelBtn.disabled = false;

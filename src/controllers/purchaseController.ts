@@ -109,7 +109,7 @@ export class PurchaseController {
                 return;
             }
             
-            res.redirect('/buyers/profile');
+            res.redirect('/profile');
             return;
         } catch (error) {
             await queryRunner.rollbackTransaction();
@@ -258,4 +258,91 @@ export class PurchaseController {
             });
         }
     }
+
+    adminOrdersView = async (req: Request, res: Response) => {
+        try {
+            const { startDate, endDate, status } = req.query;
+            
+            const purchaseRepository = AppDataSource.getRepository(Purchase);
+            const queryBuilder = purchaseRepository.createQueryBuilder('purchase')
+                .leftJoinAndSelect('purchase.buyer', 'buyer')
+                .leftJoinAndSelect('purchase.product', 'product')
+                .orderBy('purchase.purchase_date', 'DESC');
+            
+            if (startDate && endDate) {
+                queryBuilder.andWhere(
+                    'purchase.purchase_date BETWEEN :startDate AND :endDate',
+                    { 
+                        startDate: new Date(startDate as string), 
+                        endDate: new Date(endDate as string) 
+                    }
+                );
+            }
+            
+            const orders = await queryBuilder.getMany();
+            
+            const totalRevenue = orders.reduce((sum, order) => {
+                return sum + (typeof order.amount === 'number' ? 
+                    order.amount : parseFloat(order.amount));
+            }, 0);
+            
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+            
+            const defaultStartDate = startDate || thirtyDaysAgo.toISOString().split('T')[0];
+            const defaultEndDate = endDate || today.toISOString().split('T')[0];
+            
+            res.render('admin/orders', {
+                title: 'Order Management',
+                orders,
+                filters: {
+                    startDate: defaultStartDate,
+                    endDate: defaultEndDate,
+                    status: status || 'all'
+                },
+                stats: {
+                    totalOrders: orders.length,
+                    totalRevenue
+                }
+            });
+        } catch (error) {
+            console.error('Error rendering orders page:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while loading the orders page'
+            });
+        }
+    }
+    
+    viewOrderDetails = async (req: Request, res: Response) => {
+        try {
+            const orderId = req.params.id;
+            const purchaseRepository = AppDataSource.getRepository(Purchase);
+            
+            const order = await purchaseRepository.findOne({
+                where: { purchase_id: orderId },
+                relations: ['buyer', 'product']
+            });
+            
+            if (!order) {
+                return res.status(404).render('error', {
+                    title: 'Order Not Found',
+                    message: 'The requested order could not be found'
+                });
+            }
+            
+            res.render('admin/order-details', {
+                title: `Order #${order.purchase_id.substring(0, 8)}`,
+                order
+            });
+        } catch (error) {
+            console.error('Error rendering order details page:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while loading the order details'
+            });
+        }
+    }
+    
 }

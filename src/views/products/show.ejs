@@ -10,7 +10,6 @@
     </div>
 </div>
 
-<!-- Product Details Section -->
 <div class="row mb-4">
     <div class="col-md-6">
         <% if (product.image_path) { %>
@@ -31,12 +30,10 @@
             <p class="text-success">In Stock (<%= product.stock_quantity %> available)</p>
             
             <div class="d-grid gap-2 col-md-8 mt-4">
-                <!-- Buy Now button - for buyers -->
                 <a href="/checkout/<%= product.product_id %>" class="btn btn-primary btn-lg buyer-action">
                     <i class="bi bi-cart-plus"></i> Buy Now
                 </a>
                 
-                <!-- Edit button - for admins only -->
                 <a href="/products/<%= product.product_id %>/edit" class="btn btn-outline-secondary admin-action" style="display: none;">
                     <i class="bi bi-pencil"></i> Edit Product
                 </a>
@@ -49,7 +46,6 @@
                     <i class="bi bi-cart-plus"></i> Buy Now
                 </button>
                 
-                <!-- Edit button - for admins only -->
                 <a href="/products/<%= product.product_id %>/edit" class="btn btn-outline-secondary admin-action" style="display: none;">
                     <i class="bi bi-pencil"></i> Edit Product
                 </a>
@@ -71,7 +67,6 @@
     </div>
 </div>
 
-<!-- Price History Section -->
 <% if (priceHistory && priceHistory.length > 0) { %>
 <div class="row mt-5">
     <div class="col-12">
@@ -98,11 +93,9 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Check if user is admin
         const adminToken = localStorage.getItem('admin_token');
         const isAdmin = !!adminToken;
         
-        // Show/hide elements based on role
         const adminActions = document.querySelectorAll('.admin-action');
         const buyerActions = document.querySelectorAll('.buyer-action');
         
@@ -110,7 +103,6 @@
             el.style.display = isAdmin ? 'block' : 'none';
         });
         
-        // Optional: Hide buyer actions for admins
         if (isAdmin) {
             buyerActions.forEach(el => {
                 el.style.display = 'none';

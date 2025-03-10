@@ -28,7 +28,6 @@
                     <li class="nav-item">
                         <a class="nav-link" href="/products">Products</a>
                     </li>
-                    <!-- Admin-only menu items -->
                     <li class="nav-item admin-only" style="display: none;">
                         <a class="nav-link" href="/admin/dashboard">Dashboard</a>
                     </li>
@@ -71,12 +70,10 @@
         </div>
     </nav>
 
-    <!-- Main Content -->
     <main class="container flex-grow-1">
         <%- body %>
     </main>
 
-    <!-- Footer -->
     <footer class="bg-dark text-light py-4 mt-4">
         <div class="container">
             <div class="row">
@@ -96,40 +93,33 @@
         </div>
     </footer>
 
-    <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jwt-decode@3.1.2/build/jwt-decode.min.js"></script>
     
     <script>
-        // Check if user is logged in
         function checkAuthStatus() {
             const token = localStorage.getItem('token') || getCookie('token');
             const adminToken = localStorage.getItem('admin_token');
             
-            // Hide all auth-related elements first
             document.getElementById('user-menu').style.display = 'none';
             document.getElementById('admin-menu').style.display = 'none';
             document.getElementById('login-buttons').style.display = 'none';
             
-            // Hide admin-only elements
             const adminOnlyElements = document.querySelectorAll('.admin-only');
             adminOnlyElements.forEach(el => el.style.display = 'none');
             
             if (adminToken) {
-                // Admin is logged in
                 try {
                     const decodedToken = jwt_decode(adminToken);
                     document.getElementById('admin-menu').style.display = 'block';
                     document.getElementById('admin-username-display').textContent = decodedToken.username || 'Admin';
                     
-                    // Show admin-only elements
                     adminOnlyElements.forEach(el => el.style.display = 'block');
                 } catch (error) {
                     console.error('Error decoding admin token:', error);
                     showLoginButtons();
                 }
             } else if (token) {
-                // Regular user is logged in
                 try {
                     const decodedToken = jwt_decode(token);
                     document.getElementById('user-menu').style.display = 'block';
@@ -139,7 +129,6 @@
                     showLoginButtons();
                 }
             } else {
-                // No one is logged in
                 showLoginButtons();
             }
         }
@@ -148,14 +137,13 @@
             document.getElementById('login-buttons').style.display = 'block';
         }
         
-        // Helper function to get cookie value
         function getCookie(name) {
             const value = `; ${document.cookie}`;
             const parts = value.split(`; ${name}=`);
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
         
-        // Check auth status on page load
+
         document.addEventListener('DOMContentLoaded', checkAuthStatus);
     </script>
 </body>

@@ -5,6 +5,8 @@ import { CustomError } from '../utils/errors';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { StatisticsController } from './statisticsController';
+import { Buyer } from '../entities/Buyer';
+import { Purchase } from '../entities/Purchase';
 
 export class AdministratorController {
     private adminRepository = AppDataSource.getRepository(Administrator);
@@ -214,6 +216,98 @@ export class AdministratorController {
             res.status(500).render('error', {
                 title: 'Error',
                 message: 'An error occurred while loading the admin dashboard'
+            });
+        }
+    }
+
+    viewAllCustomers = async (req: Request, res: Response) => {
+        try {
+            const buyerRepository = AppDataSource.getRepository(Buyer);
+            const customers = await buyerRepository.find({
+                select: ['buyer_id', 'username'],
+                order: { username: 'ASC' }
+            });
+    
+            const purchaseRepository = AppDataSource.getRepository(Purchase);
+            
+            for (const customer of customers) {
+                const purchases = await purchaseRepository.find({
+                    where: { buyer: { buyer_id: customer.buyer_id } }
+                });
+                
+                const totalSpent = purchases.reduce((sum, purchase) => {
+                    return sum + (typeof purchase.amount === 'number' ? 
+                        purchase.amount : parseFloat(purchase.amount));
+                }, 0);
+                
+                (customer as any).purchaseCount = purchases.length;
+                (customer as any).totalSpent = totalSpent;
+                (customer as any).lastPurchaseDate = purchases.length > 0 ? 
+                    purchases.sort((a, b) => 
+                        new Date(b.purchase_date).getTime() - 
+                        new Date(a.purchase_date).getTime()
+                    )[0].purchase_date : null;
+            }
+    
+            res.render('admin/customers', {
+                title: 'Customer Management',
+                customers
+            });
+        } catch (error) {
+            console.error('Error rendering customers page:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while loading the customers page'
+            });
+        }
+    }
+    
+    viewCustomerDetails = async (req: Request, res: Response) => {
+        try {
+            const buyerId = req.params.id;
+            const buyerRepository = AppDataSource.getRepository(Buyer);
+            const purchaseRepository = AppDataSource.getRepository(Purchase);
+            
+            const customer = await buyerRepository.findOne({
+                where: { buyer_id: buyerId }
+            });
+            
+            if (!customer) {
+                return res.status(404).render('error', {
+                    title: 'Customer Not Found',
+                    message: 'The requested customer could not be found'
+                });
+            }
+            
+            const purchases = await purchaseRepository.find({
+                where: { buyer: { buyer_id: buyerId } },
+                relations: ['product'],
+                order: { purchase_date: 'DESC' }
+            });
+            
+            const totalSpent = purchases.reduce((sum, purchase) => {
+                return sum + (typeof purchase.amount === 'number' ? 
+                    purchase.amount : parseFloat(purchase.amount));
+            }, 0);
+            
+            const purchaseCount = purchases.length;
+            const avgOrderValue = purchaseCount > 0 ? totalSpent / purchaseCount : 0;
+            
+            res.render('admin/customer-details', {
+                title: `Customer: ${customer.username}`,
+                customer,
+                purchases,
+                stats: {
+                    totalSpent,
+                    purchaseCount,
+                    avgOrderValue
+                }
+            });
+        } catch (error) {
+            console.error('Error rendering customer details page:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while loading the customer details'
             });
         }
     }

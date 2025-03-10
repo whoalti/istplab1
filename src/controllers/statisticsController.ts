@@ -263,14 +263,13 @@ export class StatisticsController {
         }
     }
 
-    // New method for statistics page
-    // New method for statistics page
+
     statisticsView = async (req: Request, res: Response) => {
         try {
-            // Get sales data for the last 7 days
+
             const endDate = new Date();
             const startDate = new Date();
-            startDate.setDate(startDate.getDate() - 6); // Last 7 days
+            startDate.setDate(startDate.getDate() - 6);
             
             const salesData = await this.purchaseRepository
                 .createQueryBuilder('purchase')
@@ -284,13 +283,11 @@ export class StatisticsController {
                 .orderBy('date', 'ASC')
                 .getRawMany();
             
-            // Format sales data for chart
             const formattedSalesData = {
                 labels: salesData.map(item => new Date(item.date).toLocaleDateString()),
                 values: salesData.map(item => parseFloat(item.revenue))
             };
             
-            // Fill in missing days with zero values
             const daysDiff = 7;
             if (formattedSalesData.labels.length < daysDiff) {
                 const currentLabels = new Set(formattedSalesData.labels);
@@ -315,21 +312,17 @@ export class StatisticsController {
                 formattedSalesData.values = allValues;
             }
             
-            // Get all categories
             const categories = await this.categoryRepository.find();
             
-            // Get category distribution data - direct SQL approach to be safer
             const categorySummary = [];
             
             for (const category of categories) {
-                // For each category, get product count using raw SQL query
                 const productCountResult = await AppDataSource.query(
                     'SELECT COUNT(*) as count FROM "PRODUCT_CATEGORY_RELATION" WHERE "category_id" = $1',
                     [category.category_id]
                 );
                 const productCount = parseInt(productCountResult[0]?.count || '0');
                 
-                // Get products for this category using a raw SQL query
                 const products = await AppDataSource.query(
                     'SELECT p.* FROM "product" p ' +
                     'JOIN "PRODUCT_CATEGORY_RELATION" pcr ON p.product_id = pcr.product_id ' +
@@ -353,7 +346,6 @@ export class StatisticsController {
                 });
             }
             
-            // Format category data for chart - using raw SQL for safety
             const categoryProductCounts = await Promise.all(categories.map(async category => {
                 const result = await AppDataSource.query(
                     'SELECT COUNT(*) as count FROM "PRODUCT_CATEGORY_RELATION" WHERE "category_id" = $1',
@@ -381,15 +373,12 @@ export class StatisticsController {
             });
         }
     }
-
-    // New method for exporting products to CSV
     exportProductsToCSV = async (req: Request, res: Response) => {
         try {
             const products = await this.productRepository.find({
                 relations: ['categories']
             });
             
-            // Create a directory for exports if it doesn't exist
             const exportDir = path.join(process.cwd(), 'exports');
             if (!fs.existsSync(exportDir)) {
                 fs.mkdirSync(exportDir, { recursive: true });
@@ -425,16 +414,13 @@ export class StatisticsController {
             
             await csvWriter.writeRecords(records);
             
-            // Set headers for file download
             res.setHeader('Content-Type', 'text/csv');
             res.setHeader('Content-Disposition', `attachment; filename=products_${timestamp}.csv`);
             
-            // Send the file
             res.download(filePath, `products_${timestamp}.csv`, (err) => {
                 if (err) {
                     console.error('Error sending file:', err);
                 } else {
-                    // Optionally clean up the file after sending
                     fs.unlinkSync(filePath);
                 }
             });
