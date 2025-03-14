@@ -133,7 +133,7 @@
         
         this.value = newVal;
         
-        const isValid = /^(\d{4}-){3}\d{4}$|^(\d{4}-){0,3}\d{0,4}$/.test(this.value);
+        
         
         if (this.value.length > 0 && (!isValid || this.value.replace(/\D/g, '').length < 16)) {
             this.classList.add('is-invalid');

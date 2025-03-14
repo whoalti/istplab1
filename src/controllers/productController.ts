@@ -45,20 +45,36 @@ export class ProductController {
         await queryRunner.startTransaction();
 
         try {
-            const { name, stock_quantity, description, price } = req.body;
+            const { name, stock_quantity, description, price, category } = req.body;
 
             if (!price) {
                 return res.status(400).json({ message: "Price is required" });
             }
             const image_path = req?.file?.path;
 
+            
+
+
             const product = this.productRepository.create({
                 name,
                 stock_quantity,
                 description,
                 price,
-                image_path
+                image_path,
+                
             });
+
+            if (req.body.category) {
+                const categoryRepository = AppDataSource.getRepository(ProductCategory);
+                const category = await categoryRepository.findOne({
+                    where: { category_id: req.body.category }
+                });
+                
+                if (category) {
+                    product.categories = [category];
+                    await queryRunner.manager.save(product);
+                }
+            }
 
             const savedProduct = await queryRunner.manager.save(product);
 

@@ -119,7 +119,7 @@ export class StatisticsController {
         }
     }
 
-    updateStatistics = async () => {
+    updateStatistics = async (req: Request, res: Response, next: NextFunction) => {
         const queryRunner = AppDataSource.createQueryRunner();
         await queryRunner.connect();
         await queryRunner.startTransaction();
@@ -157,11 +157,11 @@ export class StatisticsController {
             }
             
             await queryRunner.commitTransaction();
-            return true;
+            res.json({ success: true, message: 'Statistics updated successfully' });
         } catch (error) {
             await queryRunner.rollbackTransaction();
             console.error('Error updating statistics:', error);
-            return false;
+            next(new CustomError('Failed to update statistics', 500));
         } finally {
             await queryRunner.release();
         }

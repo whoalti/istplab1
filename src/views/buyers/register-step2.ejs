@@ -1,0 +1,168 @@
+<!-- src/views/buyers/register-step2.ejs -->
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">Verify Your Email</h1>
+        <p class="lead">We sent a verification code to <strong><%= email %></strong></p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form id="verification-form">
+                    <input type="hidden" id="email" name="email" value="<%= email %>">
+                
+                    <div class="mb-4">
+                        <label for="token" class="form-label">Verification Code</label>
+                        <input type="text" class="form-control form-control-lg text-center" 
+                               id="token" name="token" placeholder="Enter 6-digit code" 
+                               maxlength="6" autocomplete="off" required>
+                    </div>
+                    
+                    <div class="alert alert-danger d-none" id="error-message"></div>
+                    <div class="alert alert-success d-none" id="success-message"></div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Complete Registration</button>
+                    </div>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <p>Didn't receive the code? <button class="btn btn-link p-0" id="resend-btn">Resend code</button></p>
+                    <div class="alert alert-info d-none" id="resend-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>    
+
+
+document.getElementById('verification-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const token = document.getElementById('token').value;
+    const email = document.getElementById('email').value;
+    
+    // Get stored username and password from cookies
+    function getCookie(name) {
+        const cookieName = name + "=";
+        const decodedCookie = decodeURIComponent(document.cookie);
+        const cookieArray = decodedCookie.split(';');
+        
+        for (let i = 0; i < cookieArray.length; i++) {
+            let cookie = cookieArray[i].trim();
+            if (cookie.indexOf(cookieName) === 0) {
+                return cookie.substring(cookieName.length, cookie.length);
+            }
+        }
+        return "";
+    }
+
+    function deleteCookie(name) {
+        document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    }
+
+    const username = getCookie('registration_username');
+    const password = getCookie('registration_password');
+    
+    // Clean up cookies after retrieving the data
+    deleteCookie('registration_username');
+    deleteCookie('registration_password');
+
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+    
+    errorMessage.classList.add('d-none');
+    successMessage.classList.add('d-none');
+    
+    if (!/^\d{6}$/.test(token)) {
+        errorMessage.textContent = 'Please enter a valid 6-digit code.';
+        errorMessage.classList.remove('d-none');
+        return;
+    }
+    
+    // Disable the submit button and show loading state
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+    
+    // Send the complete registration request with username and password from step 1
+    fetch('/api/register/complete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            token,
+            email,
+            username,
+            password
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            if (response.headers.get('content-type')?.includes('application/json')) {
+                return response.json().then(data => Promise.reject(data));
+            }
+            return Promise.reject(new Error('Registration failed'));
+        }
+        return response.json();
+    })
+    .then(data => {
+        successMessage.textContent = 'Verification successful! Redirecting to login...';
+        successMessage.classList.remove('d-none');
+        
+        setTimeout(() => {
+            window.location.href = '/login?registered=true';
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        errorMessage.textContent = error.message || 'Verification failed. Please try again.';
+        errorMessage.classList.remove('d-none');
+        
+        // Re-enable the button
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Complete Registration';
+    });
+});
+    
+    document.getElementById('resend-btn').addEventListener('click', function() {
+        const email = document.getElementById('email').value;
+        const resendMessage = document.getElementById('resend-message');
+        
+        if (!email) {
+            resendMessage.textContent = 'Email address is missing.';
+            resendMessage.classList.remove('d-none');
+            return;
+        }
+        
+        this.disabled = true;
+        this.textContent = 'Sending...';
+        resendMessage.classList.add('d-none');
+        
+        fetch('/api/register/resend', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        })
+        .then(response => response.json())
+        .then(data => {
+            resendMessage.textContent = data.message || 'Verification code resent!';
+            resendMessage.classList.remove('d-none');
+        })
+        .catch(error => {
+            resendMessage.textContent = 'An error occurred. Please try again.';
+            resendMessage.classList.remove('d-none');
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.textContent = 'Resend code';
+        });
+    });
+</script>

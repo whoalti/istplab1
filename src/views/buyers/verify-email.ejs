@@ -1,0 +1,136 @@
+
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">Verify Your Email</h1>
+        <p class="lead">Please enter the verification code sent to <strong id="email-display"><%= email %></strong></p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form id="verification-form">
+                    <input type="hidden" id="email" name="email" value="<%= email %>">
+                    
+                    <div class="mb-3">
+                        <label for="token" class="form-label">Verification Code</label>
+                        <input type="text" class="form-control form-control-lg text-center" 
+                               id="token" name="token" placeholder="Enter 6-digit code" 
+                               maxlength="6" pattern="[0-9]{6}" required>
+                        <div class="form-text">Enter the 6-digit code sent to your email</div>
+                    </div>
+                    
+                    <div class="alert alert-danger d-none" id="error-message"></div>
+                    <div class="alert alert-success d-none" id="success-message"></div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-lg">Verify Email</button>
+                    </div>
+                </form>
+                
+                <div class="mt-4 text-center">
+                    <p>Didn't receive the code? <a href="#" id="resend-link">Resend code</a></p>
+                    <div class="alert alert-info d-none" id="resend-message"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('verification-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const token = document.getElementById('token').value;
+        const email = document.getElementById('email').value;
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        
+        errorMessage.classList.add('d-none');
+        successMessage.classList.add('d-none');
+        
+        if (!/^\d{6}$/.test(token)) {
+            errorMessage.textContent = 'Please enter a valid 6-digit code.';
+            errorMessage.classList.remove('d-none');
+            return;
+        }
+        
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Verifying...';
+        
+        fetch('/api/verify-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ token, email })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message && data.message.includes('success')) {
+                successMessage.textContent = data.message || 'Email verified successfully!';
+                successMessage.classList.remove('d-none');
+                
+                setTimeout(() => {
+                    window.location.href = '/login?verified=true';
+                }, 2000);
+            } else {
+                errorMessage.textContent = data.message || 'Verification failed. Please try again.';
+                errorMessage.classList.remove('d-none');
+                
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalBtnText;
+            }
+        })
+        .catch(error => {
+            errorMessage.textContent = 'An error occurred. Please try again.';
+            errorMessage.classList.remove('d-none');
+            console.error('Error:', error);
+            
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalBtnText;
+        });
+    });
+    
+    document.getElementById('resend-link').addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        const email = document.getElementById('email').value;
+        const resendMessage = document.getElementById('resend-message');
+        
+        if (!email) {
+            resendMessage.textContent = 'Email address is missing. Please go back to the registration page.';
+            resendMessage.classList.remove('d-none');
+            return;
+        }
+        
+        this.disabled = true;
+        this.textContent = 'Sending...';
+        resendMessage.classList.add('d-none');
+        
+        fetch('/api/resend-verification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        })
+        .then(response => response.json())
+        .then(data => {
+            resendMessage.textContent = data.message;
+            resendMessage.classList.remove('d-none');
+        })
+        .catch(error => {
+            resendMessage.textContent = 'An error occurred. Please try again.';
+            resendMessage.classList.remove('d-none');
+            console.error('Error:', error);
+        })
+        .finally(() => {
+            this.disabled = false;
+            this.textContent = 'Resend code';
+        });
+    });
+</script>
