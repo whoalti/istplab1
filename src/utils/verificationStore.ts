@@ -1,4 +1,3 @@
-// src/utils/verificationStore.ts
 
 interface VerificationData {
     email: string;

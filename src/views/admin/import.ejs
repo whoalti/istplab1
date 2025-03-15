@@ -1,0 +1,64 @@
+<div class="row mb-4">
+    <div class="col">
+        <h1 class="display-4">Import Products</h1>
+        <p class="lead">Import products from a CSV file</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <% if (message) { %>
+                    <div class="alert alert-success">
+                        <%= message %>
+                    </div>
+                <% } %>
+                
+                <% if (error) { %>
+                    <div class="alert alert-danger">
+                        <%= error %>
+                    </div>
+                <% } %>
+                
+                <form action="/admin/import-products" method="POST" enctype="multipart/form-data">
+                    <div class="mb-4">
+                        <label for="csvFile" class="form-label">CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" name="csvFile" accept=".csv" required>
+                        <div class="form-text">
+                            The CSV file should have the following headers: name, price, stock_quantity, description, category (optional), product_id (optional, for updates)
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h5>CSV Format Instructions</h5>
+                        <p>Your CSV file should follow this format:</p>
+                        <pre class="bg-light p-3 border rounded"><code>name,price,stock_quantity,description,category,product_id
+Product Name,99.99,10,Product description,Category Name,
+Another Product,49.99,5,"Description with commas, they work",Category Name;Another Category,
+Existing Product,25.99,15,Updated description,Updated Category,existing-product-uuid</code></pre>
+                        <p><strong>Notes:</strong></p>
+                        <ul>
+                            <li>First row must be the header row</li>
+                            <li>Include <code>product_id</code> only for updating existing products</li>
+                            <li>For multiple categories, separate them with semicolons (;)</li>
+                            <li>Use quotes for fields containing commas</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="/admin/statistics" class="btn btn-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Import Products</button>
+                    </div>
+                </form>
+                
+                <div class="mt-4">
+                    <h5>Sample CSV Template</h5>
+                    <a href="/admin/download-csv-template" class="btn btn-outline-primary">
+                        <i class="bi bi-download"></i> Download CSV Template
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

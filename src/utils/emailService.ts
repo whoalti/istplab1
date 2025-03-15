@@ -1,9 +1,8 @@
-// src/utils/emailService.ts
+
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Simple in-memory storage
 interface VerificationData {
   username: string;
   password: string;
@@ -19,7 +18,6 @@ class VerificationService {
   constructor() {
     this.transporter = nodemailer.createTransport({
        host: "sandbox.smtp.mailtrap.io",
-      // service: process.env.EMAIL_SERVICE,
       port: 2525,
       auth: {
         user: process.env.EMAIL_USER,
@@ -27,15 +25,12 @@ class VerificationService {
       }
     });
     
-    // Log to confirm we can see the environment variables (masked for security)
     console.log(`Email Configuration: Service=${process.env.EMAIL_SERVICE}, User=${process.env.EMAIL_USER}, Pass=${process.env.EMAIL_PASSWORD ? '****' : 'not set'}`);
   }
   
   async createVerification(username: string, password: string, email: string): Promise<string> {
-    // Generate 6-digit code
     const token = Math.floor(100000 + Math.random() * 900000).toString();
     
-    // Store for 24 hours
     const expires = new Date();
     expires.setHours(expires.getHours() + 24);
     
@@ -47,7 +42,6 @@ class VerificationService {
       expires
     });
     
-    // Send email
     try {
       await this.sendEmail(email, token);
       return token;
@@ -86,7 +80,6 @@ class VerificationService {
       return null;
     }
     
-    // Check if expired
     if (data.expires < new Date()) {
       this.tokens.delete(token);
       return null;

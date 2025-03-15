@@ -373,6 +373,208 @@ export class StatisticsController {
             });
         }
     }
+
+    importProductsView = async (req: Request, res: Response) => {
+        try {
+            res.render('admin/import', {
+                title: 'Import Products',
+                message: null,
+                error: null
+            });
+        } catch (error) {
+            console.error('Error rendering import page:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while loading the import page'
+            });
+        }
+    };
+    
+    importProductsFromCSV = async (req: Request, res: Response) => {
+        try {
+            if (!req.file) {
+                return res.render('admin/import', {
+                    title: 'Import Products',
+                    message: null,
+                    error: 'No file uploaded'
+                });
+            }
+    
+            const fileBuffer = req.file.buffer;
+            const fileContent = fileBuffer.toString('utf8');
+            
+            const rows = fileContent.split('\n');
+            const headers = rows[0].split(',').map(header => header.trim());
+            
+            const requiredHeaders = ['name', 'price', 'stock_quantity', 'description'];
+            const missingHeaders = requiredHeaders.filter(header => !headers.includes(header));
+            
+            if (missingHeaders.length > 0) {
+                return res.render('admin/import', {
+                    title: 'Import Products',
+                    message: null,
+                    error: `CSV file is missing required headers: ${missingHeaders.join(', ')}`
+                });
+            }
+            interface ImportResults {
+                created: number;
+                updated: number;
+                errors: number;
+                errorDetails: string[];
+            }
+            const results : ImportResults = {
+                created: 0,
+                updated: 0,
+                errors: 0,
+                errorDetails: []
+            };
+            
+            for (let i = 1; i < rows.length; i++) {
+                if (!rows[i].trim()) continue; 
+                
+                try {
+                    const rowValues = this.parseCSVRow(rows[i]);
+                    if (rowValues.length !== headers.length) {
+                        results.errors++;
+                        results.errorDetails.push(`Row ${i}: Column count mismatch`);
+                        continue;
+                    }
+                    
+                    const productData: any = {};
+                    headers.forEach((header, index) => {
+                        productData[header] = rowValues[index].trim();
+                    });
+                    
+                    if (!productData.name || !productData.price) {
+                        results.errors++;
+                        results.errorDetails.push(`Row ${i}: Missing required fields`);
+                        continue;
+                    }
+
+                    productData.price = parseFloat(productData.price);
+                    productData.stock_quantity = parseInt(productData.stock_quantity || '0');
+                    
+                    if (productData.product_id) {
+                        const existingProduct = await this.productRepository.findOne({
+                            where: { product_id: productData.product_id }
+                        });
+                        
+                        if (existingProduct) {
+                            existingProduct.name = productData.name;
+                            existingProduct.price = productData.price;
+                            existingProduct.stock_quantity = productData.stock_quantity;
+                            existingProduct.description = productData.description;
+                            
+                            await this.productRepository.save(existingProduct);
+                            results.updated++;
+                            continue;
+                        }
+                    }
+                    
+                    const newProduct = this.productRepository.create({
+                        name: productData.name,
+                        price: productData.price,
+                        stock_quantity: productData.stock_quantity,
+                        description: productData.description
+                    });
+                    
+                    await this.productRepository.save(newProduct);
+                    results.created++;
+                    
+                    if (productData.category) {
+                        const categoryNames = productData.category.split(';').map((c: string) => c.trim());
+                        
+                        for (const categoryName of categoryNames) {
+                            if (!categoryName) continue;
+                            
+                            let category = await this.categoryRepository.findOne({
+                                where: { name: categoryName }
+                            });
+                            
+                            if (!category) {
+                                category = this.categoryRepository.create({
+                                    name: categoryName,
+                                    description: `Imported category: ${categoryName}`
+                                });
+                                await this.categoryRepository.save(category);
+                            }
+                            
+                            await AppDataSource.query(
+                                'INSERT INTO "PRODUCT_CATEGORY_RELATION" ("product_id", "category_id") VALUES ($1, $2)',
+                                [newProduct.product_id, category.category_id]
+                            );
+                        }
+                    }
+                    
+                } catch (error) {
+                    console.error(`Error processing row ${i}:`, error);
+                    results.errors++;
+                    results.errorDetails.push(`Row ${i}: ${error}`);
+                }
+            }
+            
+            return res.render('admin/import', {
+                title: 'Import Products',
+                message: `Import completed: ${results.created} products created, ${results.updated} updated, ${results.errors} errors`,
+                error: results.errors > 0 ? `Errors: ${results.errorDetails.slice(0, 5).join(', ')}${results.errorDetails.length > 5 ? '...' : ''}` : null
+            });
+            
+        } catch (error) {
+            console.error('Error importing products:', error);
+            res.status(500).render('admin/import', {
+                title: 'Import Products',
+                message: null,
+                error: 'Error processing CSV file: ' + error
+            });
+        }
+    };
+    
+    downloadCSVTemplate = async (req: Request, res: Response) => {
+        try {
+            const csvTemplate = 'name,price,stock_quantity,description,category,product_id\n' +
+                               'Sample Product,99.99,10,"Product description goes here",Category Name,\n' +
+                               'Another Product,49.99,5,"Description with commas, they work too",Category1;Category2,\n' +
+                               'Existing Product,25.99,15,Updated description,Updated Category,product-uuid-here';
+            
+            res.setHeader('Content-Type', 'text/csv');
+            res.setHeader('Content-Disposition', 'attachment; filename=product_import_template.csv');
+            res.send(csvTemplate);
+        } catch (error) {
+            console.error('Error providing CSV template:', error);
+            res.status(500).render('error', {
+                title: 'Error',
+                message: 'An error occurred while generating the CSV template'
+            });
+        }
+    };
+    private parseCSVRow(row: string): string[] {
+        const result = [];
+        let currentValue = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < row.length; i++) {
+            const char = row[i];
+            
+            if (char === '"') {
+                if (inQuotes && row[i + 1] === '"') {
+                    currentValue += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                result.push(currentValue);
+                currentValue = '';
+            } else {
+                currentValue += char;
+            }
+        }
+        
+        result.push(currentValue);
+        
+        return result;
+    }
+    
     exportProductsToCSV = async (req: Request, res: Response) => {
         try {
             const products = await this.productRepository.find({

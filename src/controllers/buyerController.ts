@@ -55,44 +55,8 @@ export class BuyerController {
     }
     
 
-    // registerBuyer = async (req: Request, res: Response, next: NextFunction) => {
-    //     try {
-    //         const { username, password, email } = req.body;
     
-    //         if (!username || !password || !email) {
-    //             return next(new CustomError('Username, password, and email are required', 400));
-    //         }
     
-    //         // Check if username or email already exists
-    //         const existingBuyer = await this.buyerRepository.findOne({ 
-    //             where: [{ username }]
-    //         });
-    
-    //         if (existingBuyer) {
-    //             return next(new CustomError('Username already exists', 400));
-    //         }
-    
-    //         // Generate token and store registration data temporarily
-    //         const token = verificationStore.addToken(email, username, password);
-            
-    //         // Send verification email
-    //         await sendVerificationEmail(email, token);
-    
-    //         if (req.xhr || req.headers.accept?.includes('application/json')) {
-    //             return res.status(200).json({
-    //                 message: 'Please check your email for verification code',
-    //                 email
-    //             });
-    //         }
-            
-    //         // Redirect to verification page
-    //         res.redirect(`/verify-email?email=${encodeURIComponent(email)}`);
-    //     } catch (error) {
-    //         next(error);
-    //     }
-    // }
-    
-    // Add verification methods
     verifyEmailView = async (req: Request, res: Response) => {
         try {
             const email = req.query.email as string;
@@ -118,19 +82,16 @@ export class BuyerController {
                 return next(new CustomError('Verification code is required', 400));
             }
             
-            // Get verification data
             const verificationData = verificationStore.getByToken(token);
             
             if (!verificationData) {
                 return next(new CustomError('Invalid or expired verification code', 400));
             }
             
-            // Verify email matches
             if (email && email !== verificationData.email) {
                 return next(new CustomError('Email does not match verification code', 400));
             }
             
-            // Create the user account now that it's verified
             const saltRounds = 10;
             const password_hash = await bcrypt.hash(verificationData.password, saltRounds);
             
@@ -141,7 +102,6 @@ export class BuyerController {
             
             const savedBuyer = await this.buyerRepository.save(buyer);
             
-            // Remove the verification data
             verificationStore.removeToken(token);
             
             if (req.xhr || req.headers.accept?.includes('application/json')) {
@@ -197,7 +157,6 @@ export class BuyerController {
             return next(new CustomError('Username, password, and email are required', 400));
           }
       
-          // Check if username already exists
           const existingBuyer = await this.buyerRepository.findOne({
             where: { username }
           });
@@ -206,7 +165,6 @@ export class BuyerController {
             return next(new CustomError('Username already exists', 400));
           }
       
-          // Create verification token and send email
           try {
             await verificationService.createVerification(username, password, email);
             
@@ -241,7 +199,6 @@ export class BuyerController {
             });
           }
           
-          // Get verification data
           const verificationData = verificationService.getVerification(token);
           
           if (!verificationData) {
@@ -251,7 +208,6 @@ export class BuyerController {
             });
           }
           
-          // Verify email matches
           if (email !== verificationData.email) {
             return res.status(400).json({
               success: false,
@@ -259,12 +215,9 @@ export class BuyerController {
             });
           }
           
-          // Use the username and password from the request
-          // If not provided, fall back to the stored values
           const finalUsername = username || verificationData.username;
           const finalPassword = password || verificationData.password;
           
-          // Check if username already exists
           const existingBuyer = await this.buyerRepository.findOne({
             where: { username: finalUsername }
           });
@@ -286,7 +239,6 @@ export class BuyerController {
           
           const savedBuyer = await this.buyerRepository.save(buyer);
           
-          // Remove the verification data
           verificationService.removeVerification(token);
           
           return res.status(201).json({
@@ -310,14 +262,12 @@ export class BuyerController {
             return next(new CustomError('Email is required', 400));
           }
       
-          // Find existing verification
           const verification = verificationService.getByEmail(email);
       
           if (!verification) {
             return next(new CustomError('No pending verification found for this email', 404));
           }
       
-          // Resend the verification email
           await verificationService.sendEmail(email, verification.token);
       
           res.json({
